@@ -384,14 +384,14 @@ bash src/usv_perception/usv_vision/scripts/gmsl_to_rtsp.sh /dev/video5 rtsp://12
 
 15. 后路 RTSP 接收 fps
 ---------------------
-ffplay -stats rtsp://10.42.0.81:8554/cam1
+ffplay -stats rtsp://192.168.1.x:8554/cam1
 
 gst-launch-1.0 -v \
-  rtspsrc location=rtsp://10.42.0.81:8554/cam1 latency=200 protocols=tcp ! \
+  rtspsrc location=rtsp://192.168.1.x:8554/cam1 latency=200 protocols=tcp ! \
   rtph264depay ! h264parse ! avdec_h264 ! \
   fpsdisplaysink text-overlay=1 video-sink=fakesink sync=0
 
-ffplay -stats rtsp://192.168.1.228:8554/cam1
+ffplay -stats rtsp://192.168.1.x:8554/cam1
 16. 资源记录：单独开一个终端
 --------------------------
 tegrastats --interval 1000
@@ -556,9 +556,9 @@ bash src/usv_perception/usv_vision/scripts/jetson_collect_benchmarks.sh \
 bash src/usv_perception/usv_vision/scripts/jetson_collect_benchmarks.sh \
   --case-name rtsp_recv_1920_rear \
   --mode rtsp \
-  --gst-cmd "gst-launch-1.0 -v rtspsrc location=rtsp://10.42.0.81:8554/cam1 latency=200 protocols=tcp ! rtph264depay ! h264parse ! avdec_h264 ! fpsdisplaysink text-overlay=1 video-sink=fakesink sync=0" \
+  --gst-cmd "gst-launch-1.0 -v rtspsrc location=rtsp://192.168.1.x:8554/cam1 latency=200 protocols=tcp ! rtph264depay ! h264parse ! avdec_h264 ! fpsdisplaysink text-overlay=1 video-sink=fakesink sync=0" \
   --duration 20 \
-  --device-or-topic rtsp://10.42.0.81:8554/cam1 \
+  --device-or-topic rtsp://192.168.1.x:8554/cam1 \
   --pipeline-type rtsp_recv \
   --target-resolution 1920x1536 \
   --results-dir /home/cczh/USV_ROS/test_logs/benchmarks \

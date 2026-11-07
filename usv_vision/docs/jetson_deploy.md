@@ -126,5 +126,5 @@ gst-launch-1.0 -v v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=192
 ```
 
 ```bash
-ffplay rtsp://10.42.0.81:8554/cam1
+ffplay rtsp://192.168.1.x:8554/cam1
 ```

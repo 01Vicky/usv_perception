@@ -86,7 +86,7 @@ ros2 launch usv_vision jetson_gmsl_full.launch.py \
 
 # 例：自定义 RTSP 地址（地面站 IP）
 ros2 launch usv_vision jetson_gmsl_full.launch.py \
-    rtsp_front:=rtsp://10.42.0.100:8554/cam1
+    rtsp_front:=rtsp://192.168.1.x:8554/cam1
 
 
 # ════════════════════════════════════════════════════════════

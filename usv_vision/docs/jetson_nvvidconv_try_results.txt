@@ -268,7 +268,7 @@ case_name,device_or_topic,pipeline_type,target_resolution,observed_resolution,fp
 "cpu_scale_only_640_front","/dev/video5","cpu_scale_only","640x640","NA","NA","NA","NA","NA","NA","NA","NA","NA","front camera cpu scale only"
 "nvvidconv_bgrx_640_front","/dev/video5","nvvidconv_bgrx","640x640","NA","NA","NA","NA","NA","NA","NA","NA","NA","front camera nvvidconv bgrx then bgr"
 "nvvidconv_nv12_640_front","/dev/video5","nvvidconv_nv12","640x640","NA","NA","NA","NA","NA","NA","NA","NA","NA","front camera nvvidconv nv12"
-"rtsp_recv_1920_rear","rtsp://10.42.0.81:8554/cam1","rtsp_recv","1920x1536","NA","NA","NA","NA","NA","NA","NA","19.842","NA","rear camera rtsp receive path"
+"rtsp_recv_1920_rear","rtsp://192.168.1.x:8554/cam1","rtsp_recv","1920x1536","NA","NA","NA","NA","NA","NA","NA","19.842","NA","rear camera rtsp receive path"
 "ros_bgr_640_front_nvvidconv","/front_gmsl_algo/image_raw","ros_bgr_nvvidconv","640x640","NA","28.438","28.049","28.981","1.230","34.448","NA","15.255","NA","front camera ros low resolution nvvidconv"
 "ros_bgr_640_front_cpu_backup","/front_gmsl_algo/image_raw","ros_bgr_cpu_backup","640x640","NA","27.930","27.320","29.797","1.230","34.030","NA","7.340","NA","front camera ros low resolution cpu backup"
 cczh@ubuntu:~/USV_ROS$ cat /home/cczh/USV_ROS/test_logs/benchmarks/ros_bgr_640_front_nvvidconv_summary.json

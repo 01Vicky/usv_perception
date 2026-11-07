@@ -361,14 +361,14 @@ cd /home/cczh/USV_ROS
 cd /home/cczh/USV_ROS
 bash src/usv_perception/usv_vision/scripts/gmsl_to_rtsp.sh /dev/video5 rtsp://127.0.0.1:8554/cam1
 
-ffplay -stats rtsp://10.42.0.81:8554/cam1
+ffplay -stats rtsp://192.168.1.x:8554/cam1
 
 gst-launch-1.0 -v \
-  rtspsrc location=rtsp://10.42.0.81:8554/cam1 latency=200 protocols=tcp ! \
+  rtspsrc location=rtsp://192.168.1.x:8554/cam1 latency=200 protocols=tcp ! \
   rtph264depay ! h264parse ! avdec_h264 ! \
   fpsdisplaysink text-overlay=1 video-sink=fakesink sync=0
 
-mcu 192.168.1.202 推流到服务器
+mcu 192.168.1.x 推流到服务器
 
 17. 一键健康检查
 ---------------
