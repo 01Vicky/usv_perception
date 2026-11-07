@@ -1,0 +1,28 @@
+# 参数含义与资源影响见: usv_vision/docs/parameters.md
+/**:
+  ros__parameters:
+    sensor_name: "left"
+    device_path: "/dev/video2"         # 左置相机在video1
+    frame_id: "rear_camera_link"
+    camera_info_url: ""
+    width: 1920
+    height: 1536
+    fps: 30.0
+    pixel_format: "UYVY"
+    source_type: "v4l2_gmsl_hw_timestamp"
+    gstreamer_pipeline: ""
+    fallback_v4l2: true
+    enable_hardware_timestamp: true
+    auto_detect_resolution: false
+    put_timestamp: false
+    image_qos_reliability: "best_effort"
+    image_qos_depth: 1
+    # M3 内置推流：默认关闭，由 launch 的 stream_mode:=internal 注入地址后启用
+    enable_internal_stream: false
+    stream_rtsp_url: ""            # 空=由 launch 按相机顺序注入 rtsp://127.0.0.1:8554/camN
+    stream_bitrate: 4000000
+    stream_fps: 30
+    stream_iframe_interval: 15
+    stream_idr_interval: 30
+    stream_preset_level: 1
+    stream_control_rate: 1

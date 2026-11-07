@@ -1,0 +1,122 @@
+usv_vision Jetson namespace 隔离复核命令
+=========================================
+
+改动记录
+--------
+1. `jetson_collect_benchmarks.sh` 已支持 ROS 模式自动隔离 namespace
+2. 不传 `--namespace` 时，脚本会按 `case-name` 自动生成独立 namespace
+3. 脚本会自动改写 `launch-cmd` 里的 `namespace:=...`
+4. 脚本会自动改写 `--topic` 到同一个独立 namespace
+5. 每个 case 会新增输出 `${case_name}_topic_info.log`
+
+
+1. 重新同步最新代码到 Jetson
+---------------------------
+cd /home/cczh/USV_ROS
+git status
+
+
+2. 重新编译
+----------
+cd /home/cczh/USV_ROS
+source /opt/ros/humble/setup.bash
+colcon build --packages-select usv_interfaces usv_vision
+source install/setup.bash
+
+
+3. 确认新脚本存在
+----------------
+ls -lah /home/cczh/USV_ROS/src/usv_perception/usv_vision/scripts/jetson_collect_benchmarks.sh
+bash /home/cczh/USV_ROS/src/usv_perception/usv_vision/scripts/jetson_collect_benchmarks.sh --help
+
+
+4. 先检查是否有残留节点占用相机
+----------------------------
+ros2 node list
+ps -ef | grep gmsl_camera_node | grep -v grep
+fuser /dev/video5
+
+
+5. 如有残留进程，先停止后再测
+---------------------------
+pkill -f usv_vision.launch.py
+pkill -f gmsl_camera_node
+sleep 2
+ros2 node list
+fuser /dev/video5
+
+
+6. 清理旧 benchmark 结果目录
+--------------------------
+rm -rf /home/cczh/USV_ROS/test_logs/benchmarks_namespace_check
+mkdir -p /home/cczh/USV_ROS/test_logs/benchmarks_namespace_check
+
+
+7. 跑 nvvidconv 新版自动采集
+--------------------------
+cd /home/cczh/USV_ROS
+bash src/usv_perception/usv_vision/scripts/jetson_collect_benchmarks.sh \
+  --case-name nscheck_nvvidconv \
+  --mode ros \
+  --launch-cmd "cd /home/cczh/USV_ROS && source /opt/ros/humble/setup.bash && source install/setup.bash && ros2 launch usv_vision usv_vision.launch.py namespace:=front_gmsl_algo gmsl_config:=/home/cczh/USV_ROS/src/usv_perception/usv_vision/config/gmsl_camera_algo_640.yaml" \
+  --topic /front_gmsl_algo/image_raw \
+  --duration 20 \
+  --startup-wait 6 \
+  --pipeline-type ros_bgr_nvvidconv \
+  --target-resolution 640x640 \
+  --results-dir /home/cczh/USV_ROS/test_logs/benchmarks_namespace_check \
+  --notes "namespace isolation check nvvidconv"
+
+
+8. 查看新版 topic 信息
+--------------------
+cat /home/cczh/USV_ROS/test_logs/benchmarks_namespace_check/nscheck_nvvidconv_topic_info.log
+cat /home/cczh/USV_ROS/test_logs/benchmarks_namespace_check/nscheck_nvvidconv_first_message.log
+cat /home/cczh/USV_ROS/test_logs/benchmarks_namespace_check/nscheck_nvvidconv_summary.json
+
+
+9. 跑 CPU 备份版自动采集
+----------------------
+cd /home/cczh/USV_ROS
+bash src/usv_perception/usv_vision/scripts/jetson_collect_benchmarks.sh \
+  --case-name nscheck_cpu_backup \
+  --mode ros \
+  --launch-cmd "cd /home/cczh/USV_ROS && source /opt/ros/humble/setup.bash && source install/setup.bash && ros2 launch usv_vision usv_vision.launch.py namespace:=front_gmsl_algo gmsl_config:=/home/cczh/USV_ROS/src/usv_perception/usv_vision/config/gmsl_camera_algo_640_cpu_backup.yaml" \
+  --topic /front_gmsl_algo/image_raw \
+  --duration 20 \
+  --startup-wait 6 \
+  --pipeline-type ros_bgr_cpu_backup \
+  --target-resolution 640x640 \
+  --results-dir /home/cczh/USV_ROS/test_logs/benchmarks_namespace_check \
+  --notes "namespace isolation check cpu backup"
+
+
+10. 查看 CPU 备份版 topic 信息
+----------------------------
+cat /home/cczh/USV_ROS/test_logs/benchmarks_namespace_check/nscheck_cpu_backup_topic_info.log
+cat /home/cczh/USV_ROS/test_logs/benchmarks_namespace_check/nscheck_cpu_backup_first_message.log
+cat /home/cczh/USV_ROS/test_logs/benchmarks_namespace_check/nscheck_cpu_backup_summary.json
+
+
+11. 查看汇总 CSV
+---------------
+cat /home/cczh/USV_ROS/test_logs/benchmarks_namespace_check/benchmark_results.csv
+
+
+12. 额外人工复核节点和话题
+------------------------
+ros2 node list
+ros2 topic list | rg nscheck
+ros2 topic info /bench_nscheck_nvvidconv/image_raw -v
+ros2 topic info /bench_nscheck_cpu_backup/image_raw -v
+
+
+13. 回传给分析的关键文件
+-----------------------
+cat /home/cczh/USV_ROS/test_logs/benchmarks_namespace_check/benchmark_results.csv
+cat /home/cczh/USV_ROS/test_logs/benchmarks_namespace_check/nscheck_nvvidconv_summary.json
+cat /home/cczh/USV_ROS/test_logs/benchmarks_namespace_check/nscheck_cpu_backup_summary.json
+cat /home/cczh/USV_ROS/test_logs/benchmarks_namespace_check/nscheck_nvvidconv_topic_info.log
+cat /home/cczh/USV_ROS/test_logs/benchmarks_namespace_check/nscheck_cpu_backup_topic_info.log
+cat /home/cczh/USV_ROS/test_logs/benchmarks_namespace_check/nscheck_nvvidconv_first_message.log
+cat /home/cczh/USV_ROS/test_logs/benchmarks_namespace_check/nscheck_cpu_backup_first_message.log

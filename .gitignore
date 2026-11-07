@@ -1,0 +1,22 @@
+# 临时/缓存/构建产物，不入库
+.tmp_onnx/
+.venv*/
+*.tar.gz
+__pycache__/
+*.pyc
+build/
+install/
+log/
+*.engine
+*.onnx
+*.pt
+
+# 记忆插件数据（含会话日志/数据库），不入库
+.dsh-meow/
+
+# 仅维护视觉相关包；以下目录不属于本人开发，不入库
+/ais/
+/ground_truth_sensor_sim/
+/gy_radar_driver/
+/mmwave_radar/
+*.zip

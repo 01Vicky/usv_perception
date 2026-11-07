@@ -1,0 +1,42 @@
+# GMSL 多相机硬件同步配置
+# 用于 gmsl_multi_camera_sync_node - 单进程控制多相机，微秒级硬件触发同步
+
+gmsl_multi_camera_sync_node:
+  ros__parameters:
+    # 相机列表配置（动态扩展：2-8路）
+    cameras:
+      devices: ["/dev/video0", "/dev/video1","/dev/video2"]
+      sensor_names: ["front", "left","right"]
+      topics: ["/sensors/camera/front/image_raw", "/sensors/camera/left/image_raw","/sensors/camera/right/image_raw"]
+      # 相机标定（全部可选，与 devices 一一对应）：
+      # camera_info 话题由上面的 image 话题自动推导（image_raw -> camera_info）。
+      # 三个标定数组都可省略；若提供则按下标对应，留空字符串 / 0 表示该相机无标定。
+      # 内参优先级：camera_info_urls > fov_x_degs/fov_y_degs > 空标定（缺失不影响出图）。
+      # 格式参考 config/camera_info_sample.json，详见 docs/CAMERA_INFO.md。
+      # camera_info_urls: ["/abs/path/front.json", ""]   # 第2路无标定文件
+      # fov_x_degs: [0.0, 135.68]                        # 第2路用规格书FOV兜底
+      # fov_y_degs: [0.0, 108.97]
+
+    # 通用配置
+    width: 1920
+    height: 1536
+    fps: 30.0
+    pixel_format: "UYVY"
+    enable_hardware_timestamp: true
+
+    # QoS：大帧（8.4MB）场景下 depth 每 +1 就多占一张图的缓冲，默认 2
+    image_qos_reliability: "best_effort"
+    image_qos_depth: 2
+
+    # 按需分发（每路相机各自发布）：image_raw 全分辨率 / image_algo 算法尺寸（识别 + 观察共用）
+    # image_algo / camera_info_algo 的话题名由 topics 里的 image_raw 自动推导；
+    # 发布 QoS 由上面的 image_qos_* 统一控制，rviz 用默认 QoS 即可订阅 image_algo 观察
+    enable_algo_stream: true
+    algo_width: 640
+    algo_height: 640
+
+# 未来扩展示例（3相机）：
+# cameras:
+#   devices: ["/dev/video0", "/dev/video1", "/dev/video2"]
+#   sensor_names: ["front", "rear", "left"]
+#   topics: ["/sensors/camera/front/image_raw", "/sensors/camera/rear/image_raw", "/sensors/camera/left/image_raw"]

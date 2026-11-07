@@ -1,0 +1,141 @@
+usv_vision Jetson namespace 隔离重试命令
+=========================================
+
+改动记录
+--------
+1. `jetson_collect_benchmarks.sh` 已改为 ROS 模式整组回收子进程
+2. `jetson_collect_benchmarks.sh` 已增加等待第一帧消息逻辑
+3. 本轮重点先排除 `/dev/video5` 被残留节点占用
+4. 本轮测试只在确认相机设备空闲后再执行 benchmark
+
+
+1. 重新同步最新代码到 Jetson
+---------------------------
+cd /home/cczh/USV_ROS
+git status
+
+
+2. 重新编译
+----------
+cd /home/cczh/USV_ROS
+source /opt/ros/humble/setup.bash
+colcon build --packages-select usv_interfaces usv_vision
+source install/setup.bash
+
+
+3. 确认新脚本存在
+----------------
+ls -lah /home/cczh/USV_ROS/src/usv_perception/usv_vision/scripts/jetson_collect_benchmarks.sh
+bash /home/cczh/USV_ROS/src/usv_perception/usv_vision/scripts/jetson_collect_benchmarks.sh --help
+
+
+4. 先检查残留节点和相机占用
+--------------------------
+ros2 node list
+ps -ef | grep gmsl_camera_node | grep -v grep
+fuser /dev/video5
+
+
+5. 清理残留 launch 和节点
+-----------------------
+pkill -f usv_vision.launch.py
+pkill -f gmsl_camera_node
+sleep 2
+
+
+6. 再次确认相机已释放
+-------------------
+ros2 node list
+ps -ef | grep gmsl_camera_node | grep -v grep
+fuser /dev/video5
+
+
+7. 单独验证相机可以重新打开
+-------------------------
+gst-launch-1.0 -ev \
+  v4l2src device=/dev/video5 ! \
+  video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! \
+  fpsdisplaysink text-overlay=1 video-sink=fakesink sync=0
+
+
+8. 清理旧重试结果目录
+-------------------
+rm -rf /home/cczh/USV_ROS/test_logs/benchmarks_namespace_retry
+mkdir -p /home/cczh/USV_ROS/test_logs/benchmarks_namespace_retry
+
+
+9. 跑 nvvidconv 新版隔离采集
+--------------------------
+cd /home/cczh/USV_ROS
+bash src/usv_perception/usv_vision/scripts/jetson_collect_benchmarks.sh \
+  --case-name retry_nvvidconv \
+  --mode ros \
+  --launch-cmd "cd /home/cczh/USV_ROS && source /opt/ros/humble/setup.bash && source install/setup.bash && ros2 launch usv_vision usv_vision.launch.py namespace:=front_gmsl_algo gmsl_config:=/home/cczh/USV_ROS/src/usv_perception/usv_vision/config/gmsl_camera_algo_640.yaml" \
+  --topic /front_gmsl_algo/image_raw \
+  --duration 20 \
+  --startup-wait 6 \
+  --pipeline-type ros_bgr_nvvidconv \
+  --target-resolution 640x640 \
+  --results-dir /home/cczh/USV_ROS/test_logs/benchmarks_namespace_retry \
+  --notes "namespace retry nvvidconv"
+
+
+10. 查看新版结果
+---------------
+cat /home/cczh/USV_ROS/test_logs/benchmarks_namespace_retry/retry_nvvidconv_topic_info.log
+cat /home/cczh/USV_ROS/test_logs/benchmarks_namespace_retry/retry_nvvidconv_first_message.log
+cat /home/cczh/USV_ROS/test_logs/benchmarks_namespace_retry/retry_nvvidconv_summary.json
+
+
+11. 再次确认相机已释放
+--------------------
+ros2 node list
+ps -ef | grep gmsl_camera_node | grep -v grep
+fuser /dev/video5
+
+
+12. 跑 CPU 备份版隔离采集
+-----------------------
+cd /home/cczh/USV_ROS
+bash src/usv_perception/usv_vision/scripts/jetson_collect_benchmarks.sh \
+  --case-name retry_cpu_backup \
+  --mode ros \
+  --launch-cmd "cd /home/cczh/USV_ROS && source /opt/ros/humble/setup.bash && source install/setup.bash && ros2 launch usv_vision usv_vision.launch.py namespace:=front_gmsl_algo gmsl_config:=/home/cczh/USV_ROS/src/usv_perception/usv_vision/config/gmsl_camera_algo_640_cpu_backup.yaml" \
+  --topic /front_gmsl_algo/image_raw \
+  --duration 20 \
+  --startup-wait 6 \
+  --pipeline-type ros_bgr_cpu_backup \
+  --target-resolution 640x640 \
+  --results-dir /home/cczh/USV_ROS/test_logs/benchmarks_namespace_retry \
+  --notes "namespace retry cpu backup"
+
+
+13. 查看 CPU 备份版结果
+---------------------
+cat /home/cczh/USV_ROS/test_logs/benchmarks_namespace_retry/retry_cpu_backup_topic_info.log
+cat /home/cczh/USV_ROS/test_logs/benchmarks_namespace_retry/retry_cpu_backup_first_message.log
+cat /home/cczh/USV_ROS/test_logs/benchmarks_namespace_retry/retry_cpu_backup_summary.json
+
+
+14. 查看汇总 CSV
+---------------
+cat /home/cczh/USV_ROS/test_logs/benchmarks_namespace_retry/benchmark_results.csv
+
+
+15. 最后复核节点和话题
+--------------------
+ros2 node list
+ros2 topic info /bench_retry_nvvidconv/image_raw -v
+ros2 topic info /bench_retry_cpu_backup/image_raw -v
+fuser /dev/video5
+
+
+16. 回传给分析的关键文件
+-----------------------
+cat /home/cczh/USV_ROS/test_logs/benchmarks_namespace_retry/benchmark_results.csv
+cat /home/cczh/USV_ROS/test_logs/benchmarks_namespace_retry/retry_nvvidconv_summary.json
+cat /home/cczh/USV_ROS/test_logs/benchmarks_namespace_retry/retry_cpu_backup_summary.json
+cat /home/cczh/USV_ROS/test_logs/benchmarks_namespace_retry/retry_nvvidconv_topic_info.log
+cat /home/cczh/USV_ROS/test_logs/benchmarks_namespace_retry/retry_cpu_backup_topic_info.log
+cat /home/cczh/USV_ROS/test_logs/benchmarks_namespace_retry/retry_nvvidconv_first_message.log
+cat /home/cczh/USV_ROS/test_logs/benchmarks_namespace_retry/retry_cpu_backup_first_message.log

@@ -1,0 +1,15 @@
+gmsl_camera_node:
+  ros__parameters:
+    device_path: "/dev/video3"
+    # camera_no: 节点实际从 device_path 解析(video2->2)，此处仅记录意图，代码不读取
+    camera_no: 3
+    width: 1920
+    height: 1536
+    fps: 30.0
+    pixel_format: "UYVY"
+    # sensor_name 决定话题名: /sensors/camera/{sensor_name}/image_raw 等
+    sensor_name: "front"
+    enable_hardware_timestamp: true
+    # sync_num: 期望同步相机数(单路=1)。当前代码在单相机节点里写死 8 路触发，此处仅记录意图
+    sync_num: 1
+    sync_freq: 30

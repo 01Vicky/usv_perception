@@ -1,0 +1,20 @@
+/**:
+  ros__parameters:
+    camera_name: "front_gmsl_algo"
+    device_path: "/dev/video4"
+    frame_id: "front_gmsl_link"
+    camera_info_url: ""
+    width: 640
+    height: 640
+    fps: 15.0
+    pixel_format: "UYVY"
+    source_type: "v4l2_gmsl_algo"
+    gstreamer_pipeline: 'v4l2src device=/dev/video4 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! videoscale ! videoconvert ! video/x-raw,format=BGR,width=640,height=640 ! appsink drop=true max-buffers=1 sync=false'
+    fallback_v4l2: false
+    put_timestamp: false
+    image_topic: "image_raw"
+    camera_info_topic: "camera_info"
+    driver_status_topic: "driver_status"
+    frame_timing_topic: "frame_timing_json"
+    image_qos_reliability: "best_effort"
+    image_qos_depth: 1

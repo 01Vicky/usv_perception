@@ -1,0 +1,454 @@
+cczh@ubuntu:~/USV_ROS$ bash src/usv_perception/usv_vision/scripts/jetson_collect_benchmarks.sh \
+  --case-name retry_nvvidconv \
+  --mode ros \
+  --launch-cmd "cd /home/cczh/USV_ROS && source /opt/ros/humble/setup.bash && source install/setup.bash && ros2 launch usv_vision usv_vision.launch.py namespace:=front_gmsl_algo gmsl_config:=/home/cczh/USV_ROS/src/usv_perception/usv_vision/config/gmsl_camera_algo_640.yaml" \
+  --topic /front_gmsl_algo/image_raw \
+  --duration 20 \
+  --startup-wait 6 \
+  --pipeline-type ros_bgr_nvvidconv \
+  --target-resolution 640x640 \
+  --results-dir /home/cczh/USV_ROS/test_logs/benchmarks_namespace_retry \
+  --notes "namespace retry nvvidconv"
+{
+  "case_name": "retry_nvvidconv",
+  "mode": "ros",
+  "device_or_topic": "/bench_retry_nvvidconv/image_raw",
+  "pipeline_type": "ros_bgr_nvvidconv",
+  "target_resolution": "640x640",
+  "observed_resolution": "NA",
+  "fps_mean": "29.498",
+  "fps_min": "28.751",
+  "fps_max": "29.827",
+  "msg_size_mb": "1.230",
+  "bandwidth_mb_s": "36.219",
+  "cpu_percent_avg": "NA",
+  "gpu_percent_avg": "8.257",
+  "temp_c_avg": "NA",
+  "notes": "namespace retry nvvidconv; namespace=bench_retry_nvvidconv"
+}
+cczh@ubuntu:~/USV_ROS$ ros2 node list
+/bench_retry_nvvidconv/gmsl_camera_node
+cczh@ubuntu:~/USV_ROS$ ps -ef | grep gmsl_camera_node | grep -v grep
+cczh@ubuntu:~/USV_ROS$ fuser /dev/video5
+cczh@ubuntu:~/USV_ROS$ ros2 node list
+ros2 topic info /bench_retry_nvvidconv/image_raw -v
+ros2 topic info /bench_retry_cpu_backup/image_raw -v
+fuser /dev/video5
+Unknown topic '/bench_retry_nvvidconv/image_raw'
+Unknown topic '/bench_retry_cpu_backup/image_raw'
+cczh@ubuntu:~/USV_ROS$ ros2 node list
+ps -ef | grep gmsl_camera_node | grep -v grep
+fuser /dev/video5
+cczh@ubuntu:~/USV_ROS$ bash src/usv_perception/usv_vision/scripts/jetson_collect_benchmarks.sh \
+  --case-name retry_cpu_backup \
+  --mode ros \
+  --launch-cmd "cd /home/cczh/USV_ROS && source /opt/ros/humble/setup.bash && source install/setup.bash && ros2 launch usv_vision usv_vision.launch.py namespace:=front_gmsl_algo gmsl_config:=/home/cczh/USV_ROS/src/usv_perception/usv_vision/config/gmsl_camera_algo_640_cpu_backup.yaml" \
+  --topic /front_gmsl_algo/image_raw \
+  --duration 20 \
+  --startup-wait 6 \
+  --pipeline-type ros_bgr_cpu_backup \
+  --target-resolution 640x640 \
+  --results-dir /home/cczh/USV_ROS/test_logs/benchmarks_namespace_retry \
+  --notes "namespace retry cpu backup"
+{
+  "case_name": "retry_cpu_backup",
+  "mode": "ros",
+  "device_or_topic": "/bench_retry_cpu_backup/image_raw",
+  "pipeline_type": "ros_bgr_cpu_backup",
+  "target_resolution": "640x640",
+  "observed_resolution": "NA",
+  "fps_mean": "7.087",
+  "fps_min": "6.382",
+  "fps_max": "7.240",
+  "msg_size_mb": "1.230",
+  "bandwidth_mb_s": "9.156",
+  "cpu_percent_avg": "NA",
+  "gpu_percent_avg": "14.935",
+  "temp_c_avg": "NA",
+  "notes": "namespace retry cpu backup; namespace=bench_retry_cpu_backup"
+}
+cczh@ubuntu:~/USV_ROS$ 
+
+cczh@ubuntu:~/USV_ROS$ cat /home/cczh/USV_ROS/test_logs/benchmarks_namespace_retry/benchmark_results.csv
+case_name,device_or_topic,pipeline_type,target_resolution,observed_resolution,fps_mean,fps_min,fps_max,msg_size_mb,bandwidth_mb_s,cpu_percent_avg,gpu_percent_avg,temp_c_avg,notes
+"retry_nvvidconv","/bench_retry_nvvidconv/image_raw","ros_bgr_nvvidconv","640x640","NA","1.407","1.182","1.499","1.230","1.876","NA","11.296","NA","namespace retry nvvidconv; namespace=bench_retry_nvvidconv"
+"retry_cpu_backup","/bench_retry_cpu_backup/image_raw","ros_bgr_cpu_backup","640x640","NA","0.614","0.545","0.651","1147.018","1.120","NA","23.411","NA","namespace retry cpu backup; namespace=bench_retry_cpu_backup"
+"retry_nvvidconv","/bench_retry_nvvidconv/image_raw","ros_bgr_nvvidconv","640x640","NA","29.498","28.751","29.827","1.230","36.219","NA","8.257","NA","namespace retry nvvidconv; namespace=bench_retry_nvvidconv"
+"retry_cpu_backup","/bench_retry_cpu_backup/image_raw","ros_bgr_cpu_backup","640x640","NA","7.087","6.382","7.240","1.230","9.156","NA","14.935","NA","namespace retry cpu backup; namespace=bench_retry_cpu_backup"
+cczh@ubuntu:~/USV_ROS$ ros2 node list
+ros2 topic info /bench_retry_nvvidconv/image_raw -v
+ros2 topic info /bench_retry_cpu_backup/image_raw -v
+fuser /dev/video5
+Unknown topic '/bench_retry_nvvidconv/image_raw'
+Unknown topic '/bench_retry_cpu_backup/image_raw'
+cczh@ubuntu:~/USV_ROS$ cat /home/cczh/USV_ROS/test_logs/benchmarks_namespace_retry/benchmark_results.csv
+cat /home/cczh/USV_ROS/test_logs/benchmarks_namespace_retry/retry_nvvidconv_summary.json
+cat /home/cczh/USV_ROS/test_logs/benchmarks_namespace_retry/retry_cpu_backup_summary.json
+cat /home/cczh/USV_ROS/test_logs/benchmarks_namespace_retry/retry_nvvidconv_topic_info.log
+cat /home/cczh/USV_ROS/test_logs/benchmarks_namespace_retry/retry_cpu_backup_topic_info.log
+cat /home/cczh/USV_ROS/test_logs/benchmarks_namespace_retry/retry_nvvidconv_first_message.log
+cat /home/cczh/USV_ROS/test_logs/benchmarks_namespace_retry/retry_cpu_backup_first_message.log
+case_name,device_or_topic,pipeline_type,target_resolution,observed_resolution,fps_mean,fps_min,fps_max,msg_size_mb,bandwidth_mb_s,cpu_percent_avg,gpu_percent_avg,temp_c_avg,notes
+"retry_nvvidconv","/bench_retry_nvvidconv/image_raw","ros_bgr_nvvidconv","640x640","NA","1.407","1.182","1.499","1.230","1.876","NA","11.296","NA","namespace retry nvvidconv; namespace=bench_retry_nvvidconv"
+"retry_cpu_backup","/bench_retry_cpu_backup/image_raw","ros_bgr_cpu_backup","640x640","NA","0.614","0.545","0.651","1147.018","1.120","NA","23.411","NA","namespace retry cpu backup; namespace=bench_retry_cpu_backup"
+"retry_nvvidconv","/bench_retry_nvvidconv/image_raw","ros_bgr_nvvidconv","640x640","NA","29.498","28.751","29.827","1.230","36.219","NA","8.257","NA","namespace retry nvvidconv; namespace=bench_retry_nvvidconv"
+"retry_cpu_backup","/bench_retry_cpu_backup/image_raw","ros_bgr_cpu_backup","640x640","NA","7.087","6.382","7.240","1.230","9.156","NA","14.935","NA","namespace retry cpu backup; namespace=bench_retry_cpu_backup"
+{
+  "case_name": "retry_nvvidconv",
+  "mode": "ros",
+  "device_or_topic": "/bench_retry_nvvidconv/image_raw",
+  "pipeline_type": "ros_bgr_nvvidconv",
+  "target_resolution": "640x640",
+  "observed_resolution": "NA",
+  "fps_mean": "29.498",
+  "fps_min": "28.751",
+  "fps_max": "29.827",
+  "msg_size_mb": "1.230",
+  "bandwidth_mb_s": "36.219",
+  "cpu_percent_avg": "NA",
+  "gpu_percent_avg": "8.257",
+  "temp_c_avg": "NA",
+  "notes": "namespace retry nvvidconv; namespace=bench_retry_nvvidconv"
+}
+{
+  "case_name": "retry_cpu_backup",
+  "mode": "ros",
+  "device_or_topic": "/bench_retry_cpu_backup/image_raw",
+  "pipeline_type": "ros_bgr_cpu_backup",
+  "target_resolution": "640x640",
+  "observed_resolution": "NA",
+  "fps_mean": "7.087",
+  "fps_min": "6.382",
+  "fps_max": "7.240",
+  "msg_size_mb": "1.230",
+  "bandwidth_mb_s": "9.156",
+  "cpu_percent_avg": "NA",
+  "gpu_percent_avg": "14.935",
+  "temp_c_avg": "NA",
+  "notes": "namespace retry cpu backup; namespace=bench_retry_cpu_backup"
+}
+Type: sensor_msgs/msg/Image
+
+Publisher count: 1
+
+Node name: gmsl_camera_node
+Node namespace: /bench_retry_nvvidconv
+Topic type: sensor_msgs/msg/Image
+Endpoint type: PUBLISHER
+GID: 01.0f.db.96.49.de.2e.0e.00.00.00.00.00.00.11.03.00.00.00.00.00.00.00.00
+QoS profile:
+  Reliability: BEST_EFFORT
+  History (Depth): UNKNOWN
+  Durability: VOLATILE
+  Lifespan: Infinite
+  Deadline: Infinite
+  Liveliness: AUTOMATIC
+  Liveliness lease duration: Infinite
+
+Subscription count: 0
+
+Type: sensor_msgs/msg/Image
+
+Publisher count: 1
+
+Node name: gmsl_camera_node
+Node namespace: /bench_retry_cpu_backup
+Topic type: sensor_msgs/msg/Image
+Endpoint type: PUBLISHER
+GID: 01.0f.db.96.37.df.5a.b7.00.00.00.00.00.00.11.03.00.00.00.00.00.00.00.00
+QoS profile:
+  Reliability: BEST_EFFORT
+  History (Depth): UNKNOWN
+  Durability: VOLATILE
+  Lifespan: Infinite
+  Deadline: Infinite
+  Liveliness: AUTOMATIC
+  Liveliness lease duration: Infinite
+
+Subscription count: 0
+
+header:
+  stamp:
+    sec: 1778831867
+    nanosec: 11057146
+  frame_id: front_gmsl_link
+height: 640
+width: 640
+encoding: bgr8
+is_bigendian: 0
+step: 1920
+data:
+- 44
+- 44
+- 40
+- 40
+- 44
+- 40
+- 36
+- 44
+- 39
+- 37
+- 44
+- 42
+- 40
+- 50
+- 48
+- 50
+- 60
+- 60
+- 60
+- 68
+- 68
+- 69
+- 75
+- 75
+- 79
+- 85
+- 85
+- 86
+- 91
+- 94
+- 96
+- 100
+- 103
+- 102
+- 107
+- 107
+- 106
+- 112
+- 112
+- 109
+- 114
+- 114
+- 111
+- 119
+- 119
+- 112
+- 120
+- 120
+- 118
+- 123
+- 124
+- 121
+- 124
+- 125
+- 123
+- 127
+- 127
+- 125
+- 128
+- 128
+- 124
+- 126
+- 127
+- 131
+- 132
+- 133
+- 125
+- 127
+- 126
+- 125
+- 127
+- 126
+- 130
+- 129
+- 128
+- 122
+- 121
+- 120
+- 122
+- 120
+- 121
+- 121
+- 117
+- 119
+- 113
+- 109
+- 111
+- 103
+- 99
+- 100
+- 90
+- 88
+- 87
+- 84
+- 78
+- 78
+- 79
+- 74
+- 72
+- 74
+- 70
+- 67
+- 68
+- 64
+- 61
+- 67
+- 62
+- 62
+- 66
+- 56
+- 58
+- 64
+- 54
+- 59
+- 59
+- 54
+- 57
+- 56
+- 55
+- 56
+- 56
+- 55
+- 56
+- 54
+- 53
+- 52
+- 89
+- 89
+- '...'
+---
+header:
+  stamp:
+    sec: 1778831986
+    nanosec: 666608934
+  frame_id: front_gmsl_link
+height: 640
+width: 640
+encoding: bgr8
+is_bigendian: 0
+step: 1920
+data:
+- 57
+- 69
+- 114
+- 56
+- 68
+- 113
+- 58
+- 70
+- 115
+- 59
+- 71
+- 116
+- 57
+- 72
+- 116
+- 57
+- 72
+- 116
+- 57
+- 68
+- 115
+- 58
+- 69
+- 116
+- 57
+- 71
+- 117
+- 58
+- 72
+- 118
+- 60
+- 74
+- 120
+- 58
+- 72
+- 118
+- 58
+- 72
+- 120
+- 61
+- 75
+- 123
+- 61
+- 75
+- 121
+- 64
+- 78
+- 124
+- 66
+- 78
+- 123
+- 65
+- 77
+- 122
+- 72
+- 83
+- 125
+- 68
+- 79
+- 121
+- 71
+- 82
+- 124
+- 69
+- 80
+- 122
+- 67
+- 78
+- 120
+- 64
+- 75
+- 117
+- 57
+- 70
+- 112
+- 57
+- 69
+- 114
+- 56
+- 67
+- 114
+- 60
+- 71
+- 118
+- 57
+- 71
+- 119
+- 57
+- 71
+- 119
+- 58
+- 72
+- 120
+- 60
+- 74
+- 122
+- 57
+- 71
+- 119
+- 62
+- 76
+- 124
+- 62
+- 73
+- 122
+- 65
+- 76
+- 125
+- 63
+- 74
+- 121
+- 69
+- 80
+- 127
+- 67
+- 79
+- 124
+- 69
+- 82
+- 124
+- 69
+- 80
+- 122
+- 72
+- 83
+- 125
+- 73
+- 84
+- '...'
+---
+cczh@ubuntu:~/USV_ROS$ 
+
+

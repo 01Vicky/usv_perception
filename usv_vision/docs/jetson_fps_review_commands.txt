@@ -1,0 +1,169 @@
+usv_vision 帧率问题测试审查命令
+=================================
+
+板子工作区路径
+--------------
+/home/cczh/USV_ROS
+
+
+1. 进入工作区并加载环境
+----------------------
+cd /home/cczh/USV_ROS
+source /opt/ros/humble/setup.bash
+source install/setup.bash
+
+
+2. 确认配置文件路径存在
+----------------------
+ls /home/cczh/USV_ROS/src/usv_perception/usv_vision/config/gmsl_camera.yaml
+ls /home/cczh/USV_ROS/src/usv_perception/usv_vision/config/gmsl_camera_rear.yaml
+ls /home/cczh/USV_ROS/src/usv_perception/usv_vision/config/gmsl_camera_algo_640.yaml
+
+
+3. 确认设备节点存在
+------------------
+ls -l /dev/video4
+ls -l /dev/video5
+
+
+4. 检查前路相机底层真实 fps
+--------------------------
+gst-launch-1.0 -ev \
+  v4l2src device=/dev/video4 ! \
+  "video/x-raw, format=(string)UYVY, width=(int)1920, height=(int)1536" ! \
+  fpsdisplaysink text-overlay=1 video-sink=fakesink sync=0
+
+
+5. 检查后路相机底层真实 fps
+--------------------------
+gst-launch-1.0 -ev \
+  v4l2src device=/dev/video5 ! \
+  "video/x-raw, format=(string)UYVY, width=(int)1920, height=(int)1536" ! \
+  fpsdisplaysink text-overlay=1 video-sink=fakesink sync=0
+
+
+6. 检查 640x640 缩放管线是否真的协商成功
+--------------------------------------
+gst-launch-1.0 -v \
+  v4l2src device=/dev/video4 ! \
+  video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! \
+  videoscale ! videoconvert ! \
+  video/x-raw,format=BGR,width=640,height=640 ! \
+  fakesink
+
+
+7. 检查 640x640 缩放管线的实际 fps
+--------------------------------
+gst-launch-1.0 -ev \
+  v4l2src device=/dev/video4 ! \
+  video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! \
+  videoscale ! videoconvert ! \
+  video/x-raw,format=BGR,width=640,height=640 ! \
+  fpsdisplaysink text-overlay=1 video-sink=fakesink sync=0
+
+
+8. 单独启动前路高分辨率 ROS 链
+-----------------------------
+cd /home/cczh/USV_ROS
+source /opt/ros/humble/setup.bash
+source install/setup.bash
+ros2 launch usv_vision usv_vision.launch.py \
+  namespace:=front_gmsl \
+  gmsl_config:=/home/cczh/USV_ROS/src/usv_perception/usv_vision/config/gmsl_camera.yaml
+
+
+9. 检查前路高分辨率 ROS 输出
+--------------------------
+ros2 topic echo /front_gmsl/driver_status --once
+ros2 topic echo /front_gmsl/frame_timing_json --once
+ros2 topic hz /front_gmsl/image_raw
+ros2 topic bw /front_gmsl/image_raw
+
+
+10. 单独启动前路低分辨率算法链
+----------------------------
+cd /home/cczh/USV_ROS
+source /opt/ros/humble/setup.bash
+source install/setup.bash
+ros2 launch usv_vision usv_vision.launch.py \
+  namespace:=front_gmsl_algo \
+  gmsl_config:=/home/cczh/USV_ROS/src/usv_perception/usv_vision/config/gmsl_camera_algo_640.yaml
+
+
+11. 检查前路低分辨率算法链输出
+----------------------------
+ros2 topic echo /front_gmsl_algo/driver_status --once
+ros2 topic echo /front_gmsl_algo/frame_timing_json --once
+ros2 topic hz /front_gmsl_algo/image_raw
+ros2 topic bw /front_gmsl_algo/image_raw
+
+
+12. 单独启动后路高分辨率 ROS 链
+-----------------------------
+cd /home/cczh/USV_ROS
+source /opt/ros/humble/setup.bash
+source install/setup.bash
+ros2 launch usv_vision usv_vision.launch.py \
+  namespace:=rear_gmsl \
+  gmsl_config:=/home/cczh/USV_ROS/src/usv_perception/usv_vision/config/gmsl_camera_rear.yaml
+
+
+13. 检查后路高分辨率 ROS 输出
+---------------------------
+ros2 topic echo /rear_gmsl/driver_status --once
+ros2 topic echo /rear_gmsl/frame_timing_json --once
+ros2 topic hz /rear_gmsl/image_raw
+ros2 topic bw /rear_gmsl/image_raw
+
+
+14. 双路同时启动
+---------------
+cd /home/cczh/USV_ROS
+source /opt/ros/humble/setup.bash
+source install/setup.bash
+ros2 launch usv_vision dual_gmsl.launch.py
+
+
+15. 双路同时检查
+---------------
+ros2 topic hz /front_gmsl/image_raw
+ros2 topic bw /front_gmsl/image_raw
+ros2 topic hz /rear_gmsl/image_raw
+ros2 topic bw /rear_gmsl/image_raw
+
+
+16. 后路 RTSP 转发链检查
+-----------------------
+cd /home/cczh/USV_ROS
+./mediamtx
+
+cd /home/cczh/USV_ROS
+bash src/usv_perception/usv_vision/scripts/gmsl_to_rtsp.sh /dev/video5 rtsp://127.0.0.1:8554/cam1
+
+ffplay -stats rtsp://10.42.0.81:8554/cam1
+
+gst-launch-1.0 -v \
+  rtspsrc location=rtsp://10.42.0.81:8554/cam1 latency=200 protocols=tcp ! \
+  rtph264depay ! h264parse ! avdec_h264 ! \
+  fpsdisplaysink text-overlay=1 video-sink=fakesink sync=0
+
+
+17. 一键健康检查
+---------------
+cd /home/cczh/USV_ROS
+bash src/usv_perception/usv_vision/scripts/gmsl_health_check.sh
+CHECK_ROS=1 bash src/usv_perception/usv_vision/scripts/gmsl_health_check.sh
+
+
+18. 建议你回传给我的关键信息
+--------------------------
+ros2 topic echo /front_gmsl/frame_timing_json --once
+ros2 topic echo /front_gmsl_algo/frame_timing_json --once
+ros2 topic bw /front_gmsl/image_raw
+ros2 topic bw /front_gmsl_algo/image_raw
+gst-launch-1.0 -v \
+  v4l2src device=/dev/video4 ! \
+  video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! \
+  videoscale ! videoconvert ! \
+  video/x-raw,format=BGR,width=640,height=640 ! \
+  fakesink

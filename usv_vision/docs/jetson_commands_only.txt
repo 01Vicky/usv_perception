@@ -1,0 +1,149 @@
+usv_vision Jetson 命令清单
+==========================
+
+1. ROS 2 基础检查
+----------------
+ls /opt/ros
+source /opt/ros/humble/setup.bash
+ros2 pkg list | head
+python3 --version
+
+
+2. 设备与基础依赖检查
+--------------------
+ls /dev/video*
+gst-inspect-1.0 v4l2src
+gst-inspect-1.0 videoconvert
+gst-inspect-1.0 appsink
+python3 -c "import cv2; print(cv2.__version__)"
+python3 -c "from cv_bridge import CvBridge; print('cv_bridge ok')"
+
+
+3. 如果缺环境，安装
+------------------
+sudo apt update
+sudo apt install -y \
+  ros-humble-rclpy \
+  ros-humble-std-msgs \
+  ros-humble-sensor-msgs \
+  ros-humble-cv-bridge \
+  ros-humble-launch \
+  ros-humble-launch-ros \
+  python3-opencv \
+  gstreamer1.0-tools \
+  gstreamer1.0-plugins-base \
+  gstreamer1.0-plugins-good \
+  gstreamer1.0-plugins-bad \
+  gstreamer1.0-libav
+
+
+4. GStreamer 插件复查
+--------------------
+gst-inspect-1.0 v4l2src
+gst-inspect-1.0 videoconvert
+gst-inspect-1.0 appsink
+gst-inspect-1.0 nvvidconv
+gst-inspect-1.0 nvv4l2h264enc
+gst-inspect-1.0 h264parse
+
+
+5. 前路相机本地显示测试
+----------------------
+gst-launch-1.0 -ev v4l2src device=/dev/video4 ! "video/x-raw, format=(string)UYVY, width=(int)1920, height=(int)1536" ! fpsdisplaysink text-overlay=0 video-sink=xvimagesink sync=0
+
+
+5.1 前路相机本地帧率检查
+----------------------
+gst-launch-1.0 -ev v4l2src device=/dev/video4 ! "video/x-raw, format=(string)UYVY, width=(int)1920, height=(int)1536" ! fpsdisplaysink text-overlay=1 video-sink=fakesink sync=0
+
+
+6. 后路相机 RTSP 推流测试
+------------------------
+./mediamtx
+gst-launch-1.0 -v v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! nvv4l2h264enc bitrate=4000000 ! h264parse ! rtspclientsink location=rtsp://127.0.0.1:8554/cam1
+ffplay rtsp://10.42.0.81:8554/cam1
+
+
+6.1 后路 RTSP 接收帧率检查
+------------------------
+ffplay -stats rtsp://10.42.0.81:8554/cam1
+gst-launch-1.0 -v rtspsrc location=rtsp://10.42.0.81:8554/cam1 latency=200 protocols=tcp ! rtph264depay ! h264parse ! avdec_h264 ! fpsdisplaysink text-overlay=1 video-sink=fakesink sync=0
+
+
+7. 代码准备
+----------
+cd ~/USV_ROS
+source /opt/ros/humble/setup.bash
+ls src/usv_interfaces
+ls src/usv_perception/usv_vision
+
+
+8. 编译
+------
+cd ~/USV_ROS
+source /opt/ros/humble/setup.bash
+colcon build --packages-select usv_interfaces usv_vision
+source install/setup.bash
+
+
+9. 前路相机 ROS 采集链
+--------------------
+cd ~/USV_ROS
+source /opt/ros/humble/setup.bash
+source install/setup.bash
+ros2 launch usv_vision usv_vision.launch.py
+
+
+10. 前路相机 ROS 检查
+-------------------
+ros2 node list
+ros2 topic list | rg 'image_raw|camera_info|frame_timing_json|driver_status'
+ros2 topic echo /front_gmsl/driver_status --once
+ros2 topic echo /front_gmsl/frame_timing_json --once
+ros2 topic hz /front_gmsl/image_raw
+ros2 topic bw /front_gmsl/image_raw
+
+
+11. 后路相机 ROS 单独验证
+------------------------
+cd ~/USV_ROS
+source /opt/ros/humble/setup.bash
+source install/setup.bash
+ros2 launch usv_vision usv_vision.launch.py \
+  namespace:=rear_gmsl \
+  gmsl_config:=/home/ww/USV_ROS/src/usv_perception/usv_vision/config/gmsl_camera_rear.yaml
+ros2 topic hz /rear_gmsl/image_raw
+ros2 topic bw /rear_gmsl/image_raw
+
+
+12. 双路 ROS 采集
+----------------
+cd ~/USV_ROS
+source /opt/ros/humble/setup.bash
+source install/setup.bash
+ros2 launch usv_vision dual_gmsl.launch.py
+
+
+13. 低分辨率算法链
+----------------
+cd ~/USV_ROS
+source /opt/ros/humble/setup.bash
+source install/setup.bash
+ros2 launch usv_vision usv_vision.launch.py \
+  namespace:=front_gmsl_algo \
+  gmsl_config:=/home/ww/USV_ROS/src/usv_perception/usv_vision/config/gmsl_camera_algo_640.yaml
+ros2 topic hz /front_gmsl_algo/image_raw
+ros2 topic bw /front_gmsl_algo/image_raw
+
+
+14. 后路相机 RTSP 脚本
+---------------------
+cd ~/USV_ROS
+bash src/usv_perception/usv_vision/scripts/gmsl_to_rtsp.sh /dev/video5 rtsp://127.0.0.1:8554/cam1
+
+
+15. GMSL 健康检查脚本
+-------------------
+cd ~/USV_ROS
+bash src/usv_perception/usv_vision/scripts/gmsl_health_check.sh
+CHECK_ROS=1 bash src/usv_perception/usv_vision/scripts/gmsl_health_check.sh

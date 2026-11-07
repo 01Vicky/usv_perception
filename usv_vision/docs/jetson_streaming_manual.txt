@@ -1,0 +1,243 @@
+usv_vision Jetson 视频推流操作手册
+==================================
+
+适用范围
+--------
+1. Jetson Orin NX
+2. GMSL 相机当前测试设备：`/dev/video5`
+3. 本手册只关注视频推流，不涉及 ROS 图像话题测试
+4. 当前仓库提供两类脚本：
+   `gmsl_to_rtsp.sh`
+   `gmsl_to_rtmp.sh`
+
+
+当前脚本位置
+------------
+1. RTSP 推流脚本：
+   `/home/cczh/USV_ROS/src/usv_perception/usv_vision/scripts/gmsl_to_rtsp.sh`
+2. RTMP 推流脚本：
+   `/home/cczh/USV_ROS/src/usv_perception/usv_vision/scripts/gmsl_to_rtmp.sh`
+
+
+默认设计
+--------
+1. 输入源默认是 `v4l2`：
+   `/dev/video5`
+2. 默认分辨率：
+   `1920x1536`
+3. 默认帧率：
+   `30fps`
+4. 默认像素格式：
+   `UYVY`
+5. RTSP 默认采用 Jetson 硬编码链：
+   `v4l2src -> nvvidconv -> NV12/NVMM -> nvv4l2h264enc`
+6. RTMP 默认采用 `ffmpeg + libx264`
+
+
+一、推流前先检查环境
+--------------------
+cd /home/cczh/USV_ROS
+source /opt/ros/humble/setup.bash
+
+ls /dev/video*
+gst-inspect-1.0 v4l2src
+gst-inspect-1.0 nvvidconv
+gst-inspect-1.0 nvv4l2h264enc
+gst-inspect-1.0 h264parse
+ffmpeg -version
+ffplay -version
+
+
+二、先确认相机本地直出正常
+------------------------
+gst-launch-1.0 -ev \
+  v4l2src device=/dev/video5 ! \
+  "video/x-raw, format=(string)UYVY, width=(int)1920, height=(int)1536" ! \
+  fpsdisplaysink text-overlay=1 video-sink=fakesink sync=0
+
+判断标准：
+1. 应接近 `30fps`
+2. 如果这里就不正常，先不要继续推流测试
+
+
+三、先确认设备没有被其他进程占用
+------------------------------
+ros2 node list
+ps -ef | grep gmsl_camera_node | grep -v grep
+fuser /dev/video5
+
+如有残留占用，先清理：
+pkill -f usv_vision.launch.py
+pkill -f gmsl_camera_node
+sleep 2
+fuser /dev/video5
+
+
+四、本地 RTSP 推流验证
+--------------------
+步骤 1：启动 mediamtx
+cd /home/cczh/USV_ROS
+./mediamtx
+
+步骤 2：启动 RTSP 推流脚本
+cd /home/cczh/USV_ROS
+bash src/usv_perception/usv_vision/scripts/gmsl_to_rtsp.sh /dev/video5 rtsp://127.0.0.1:8554/cam1
+
+步骤 3：Jetson 本机拉流查看
+ffplay -fflags nobuffer -flags low_delay rtsp://127.0.0.1:8554/cam1
+
+步骤 4：查看接收帧率
+gst-launch-1.0 -v \
+  rtspsrc location=rtsp://127.0.0.1:8554/cam1 latency=100 protocols=tcp ! \
+  rtph264depay ! h264parse ! avdec_h264 ! \
+  fpsdisplaysink text-overlay=1 video-sink=fakesink sync=0
+
+判断标准：
+1. 本机 RTSP 拉流应先尽量稳定
+2. 如果本机 RTSP 都花屏或严重卡顿，先不要继续公网 RTMP
+
+
+五、局域网 RTSP 推流验证
+----------------------
+在其他主机拉流：
+ffplay -fflags nobuffer -flags low_delay rtsp://<jetson_ip>:8554/cam1
+
+或：
+gst-launch-1.0 -v \
+  rtspsrc location=rtsp://<jetson_ip>:8554/cam1 latency=200 protocols=tcp ! \
+  rtph264depay ! h264parse ! avdec_h264 ! \
+  fpsdisplaysink text-overlay=1 video-sink=fakesink sync=0
+
+判断标准：
+1. 先看本机 RTSP 是否正常
+2. 本机正常但局域网异常，再查网络链路
+
+
+六、公网 RTMP 推流
+----------------
+最直接用法：
+cd /home/cczh/USV_ROS
+bash src/usv_perception/usv_vision/scripts/gmsl_to_rtmp.sh rtmp://101.43.14.147:1935/live/test
+
+如果要显式指定输入参数：
+cd /home/cczh/USV_ROS
+DEVICE=/dev/video5 \
+WIDTH=1920 \
+HEIGHT=1536 \
+FPS=30 \
+VIDEO_BITRATE=8M \
+MAXRATE=8M \
+BUFSIZE=16M \
+bash src/usv_perception/usv_vision/scripts/gmsl_to_rtmp.sh rtmp://101.43.14.147:1935/live/test
+
+
+七、RTSP 输入转公网 RTMP
+----------------------
+适用于已经有本地 RTSP 源时：
+cd /home/cczh/USV_ROS
+INPUT_MODE=rtsp \
+INPUT_URL=rtsp://127.0.0.1:8554/cam1 \
+bash src/usv_perception/usv_vision/scripts/gmsl_to_rtmp.sh rtmp://101.43.14.147:1935/live/test
+
+适用场景：
+1. 先确认本地 RTSP 正常
+2. 再把 RTSP 作为统一输入推公网 RTMP
+
+
+八、推荐测试顺序
+--------------
+1. 本地相机直出 `30fps` 检查
+2. 本机 RTSP 推拉验证
+3. 局域网 RTSP 推拉验证
+4. 公网 RTMP 推流
+5. 最后才做“RTSP 输入再转 RTMP”
+
+不要一上来直接公网推流。
+
+
+九、常用参数调整
+--------------
+RTSP 脚本常用环境变量：
+BITRATE=8000000
+FPS=30
+WIDTH=1920
+HEIGHT=1536
+IFRAME_INTERVAL=30
+IDR_INTERVAL=30
+CONTROL_RATE=1
+INSERT_SPS_PPS=1
+INSERT_VUI=1
+
+RTMP 脚本常用环境变量：
+VIDEO_BITRATE=8M
+MAXRATE=8M
+BUFSIZE=16M
+GOP=30
+PRESET=veryfast
+TUNE=zerolatency
+
+
+十、花屏时的优先排查顺序
+----------------------
+1. 先看相机本地直出是否正常
+2. 再看本机 RTSP 拉流是否正常
+3. 如果本机 RTSP 就花屏：
+   先怀疑编码链，不要先怀疑公网
+4. 如果 RTSP 本机正常，RTMP 异常：
+   再怀疑 ffmpeg 编码/网络上行
+5. 先确认 `/dev/video5` 没有被其他节点占用
+
+
+十一、花屏时建议降载测试
+----------------------
+先把参数降到：
+WIDTH=1280
+HEIGHT=720
+FPS=25
+
+RTSP：
+cd /home/cczh/USV_ROS
+WIDTH=1280 HEIGHT=720 FPS=25 BITRATE=4000000 \
+bash src/usv_perception/usv_vision/scripts/gmsl_to_rtsp.sh /dev/video5 rtsp://127.0.0.1:8554/cam1
+
+RTMP：
+cd /home/cczh/USV_ROS
+WIDTH=1280 HEIGHT=720 FPS=25 VIDEO_BITRATE=4M MAXRATE=4M BUFSIZE=8M \
+bash src/usv_perception/usv_vision/scripts/gmsl_to_rtmp.sh rtmp://101.43.14.147:1935/live/test
+
+如果降到 `1280x720@25` 后明显稳定，说明你当前问题更偏编码负载或链路带宽。
+
+
+十二、建议保留的日志
+------------------
+RTSP 推流日志：
+cd /home/cczh/USV_ROS
+bash src/usv_perception/usv_vision/scripts/gmsl_to_rtsp.sh /dev/video5 rtsp://127.0.0.1:8554/cam1 2>&1 | tee /home/cczh/USV_ROS/test_logs/rtsp_push.log
+
+RTMP 推流日志：
+cd /home/cczh/USV_ROS
+bash src/usv_perception/usv_vision/scripts/gmsl_to_rtmp.sh rtmp://101.43.14.147:1935/live/test 2>&1 | tee /home/cczh/USV_ROS/test_logs/rtmp_push.log
+
+资源日志：
+mkdir -p /home/cczh/USV_ROS/test_logs
+tegrastats --interval 1000 --logfile /home/cczh/USV_ROS/test_logs/streaming_tegrastats.log
+
+
+十三、回传给分析的最小信息
+------------------------
+1. `rtsp_push.log`
+2. `rtmp_push.log`
+3. `streaming_tegrastats.log`
+4. 本机 `ffplay` 或 `gst-launch` 拉流时的终端输出
+5. 当前使用的是哪组参数：
+   分辨率
+   帧率
+   码率
+   输入模式
+
+
+十四、当前建议结论
+----------------
+1. 先把 RTSP 本地推拉跑稳
+2. RTSP 本地正常后，再上公网 RTMP
+3. 如果两者都花屏，优先查编码链和设备占用，不要先查公网服务器

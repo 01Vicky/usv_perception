@@ -1,0 +1,23 @@
+# 参数含义与资源影响见: usv_vision/docs/parameters.md
+# RTSP 推流配置（usv_vision / rtsp_stream_node）
+# 平台：NVIDIA Jetson（依赖 nvvidconv / nvv4l2h264enc）
+/**:
+  ros__parameters:
+    sensor_name: "front"
+    input_image_topic: ""                      # 空=按 sensor_name 推导
+    rtsp_url: "rtsp://127.0.0.1:8554/cam1"     # 本地 RTSP，frpc 转发公网
+    width: 1920
+    height: 1536
+    fps: 30
+    bitrate: 4000000
+    iframe_interval: 15
+    idr_interval: 30
+    control_rate: 1                            # 1=CBR
+    preset_level: 1
+    insert_sps_pps: true
+    reconnect_delay_sec: 3.0
+    camera_id: ""
+    status_topic: ""
+    status_rate_hz: 1.0
+    image_qos_reliability: "best_effort"
+    image_qos_depth: 1

@@ -1,0 +1,71 @@
+/**:
+  ros__parameters:
+    # 传感器标识
+    sensor_name: "front"          # 传感器名称，决定话题名: /sensors/camera/{sensor_name}/...
+    camera_name: "front"          # 兼容旧参数占位，C++ 节点已声明但不使用（话题名只认 sensor_name）
+
+    # 设备配置
+    device_path: "/dev/video0"    # 视频设备路径（可以是/dev/video0-7）
+    frame_id: "front_camera_link" # TF坐标系
+
+    # 图像参数
+    width: 1920                   # 期望宽度
+    height: 1536                  # 期望高度
+    fps: 30.0                     # 期望帧率
+    pixel_format: "UYVY"          # 像素格式：UYVY, YUYV, YVYU等
+
+    # 相机标定：JSON 文件的绝对路径，留空则进入下面的兜底逻辑
+    # 格式参考 config/camera_info_sample.json；标定分辨率与实际出图分辨率不一致时会自动缩放内参
+    camera_info_url: ""           # 例如 "/home/ww/音乐/miwen/usv_vision_gmsl_cpp/config/camera_info_sample.json"
+
+    # 规格书标称视场角兜底：仅当 camera_info_url 缺失/加载失败时生效
+    # 用 FOV 反算近似内参（无畸变），供下游粗略估算；两者都为 0 则退回空标定
+    # 内参优先级：标定文件 > FOV 反算 > 空标定
+    fov_x_deg: 0.0                # 水平视场角(度)，来自相机规格书；0 表示不提供
+    fov_y_deg: 0.0                # 垂直视场角(度)，来自相机规格书；0 表示不提供
+
+    # 源类型标识
+    source_type: "v4l2_gmsl"      # 源类型标记
+
+    # GStreamer管道（如果为空，使用自动生成的管道）
+    gstreamer_pipeline: ""
+    # 自定义示例：
+    # gstreamer_pipeline: 'v4l2src device=/dev/video0 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false'
+
+    # 降级选项
+    fallback_v4l2: true           # GStreamer失败时降级到V4L2
+
+    # 硬件时间戳（C++节点专用）
+    enable_hardware_timestamp: true   # 是否启用GMSL硬件时间戳
+    auto_detect_resolution: false     # 是否自动检测设备分辨率
+
+    # 多相机硬件同步掩码：0=自动(1<<camera_no，按 device_path 推算)，非0=手动指定触发位
+    sync_camera_bit_mask: 0
+
+    # 调试选项
+    put_timestamp: false          # 是否在图像上绘制时间戳
+
+    # 注意：C++ 节点的话题名固定为 /sensors/camera/{sensor_name}/{image_raw|camera_info|
+    # image_algo|camera_info_algo|driver_status|frame_timing_json}，
+    # 无法通过参数覆盖。若需改话题名，只能改 sensor_name。
+    # （Python 版 usv_vision 支持 image_topic 等覆盖参数，C++ 版未实现，故此处不提供。）
+
+    # QoS配置
+    image_qos_reliability: "best_effort"  # reliable 或 best_effort
+    image_qos_depth: 2                    # 队列深度（大帧场景别开大：depth 每 +1 就多占一张图的缓冲）
+
+    # ── 按需分发（采集端一次成帧、按消费者需求分发）────────────────────────
+    # 背景：原来只发一种全分辨率规格，识别/推流/rviz 各自从 DDS 捞一遍再各自转换，
+    # 同一帧在机器内部被搬多份。现在由采集进程按消费者需求分发：
+    #   image_raw   全分辨率 BGR → 推流/录像等"要原图"的消费者
+    #   image_algo  算法尺寸 BGR → 识别（yolo_infer_node）与人工观察（rviz）共用，
+    #               发布 QoS 与 image_raw 同一套；无订阅者时不 resize 不发布
+    # 两者共用同一份已转换好的 BGR 帧，差别只在一次 resize。
+    #
+    # QoS 约定：发布端由上面的 image_qos_* 统一控制（当前 reliable/depth2），
+    # 订阅端一律 best_effort/depth1（只处理最新帧，写端不等读者）。
+    # 观察画面怎么开：rviz 订阅 .../image_algo 即可（默认 QoS 就能看到）；
+    # 要看检测框叠加则订阅 /perception/camera/{sensor_name}/annotated。
+    enable_algo_stream: true          # 是否发布 image_algo
+    algo_width: 640                   # 算法图宽度（<=0 或与原始同尺寸则不缩放，直接用原图）
+    algo_height: 640                  # 算法图高度

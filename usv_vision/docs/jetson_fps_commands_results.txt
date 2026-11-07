@@ -1,0 +1,391 @@
+usv_vision 帧率问题测试审查命令
+=================================
+
+板子工作区路径
+--------------
+/home/cczh/USV_ROS
+
+
+1. 进入工作区并加载环境
+----------------------
+cd /home/cczh/USV_ROS
+source /opt/ros/humble/setup.bash
+source install/setup.bash
+
+
+2. 确认配置文件路径存在
+----------------------
+ls /home/cczh/USV_ROS/src/usv_perception/usv_vision/config/gmsl_camera.yaml
+ls /home/cczh/USV_ROS/src/usv_perception/usv_vision/config/gmsl_camera_rear.yaml
+ls /home/cczh/USV_ROS/src/usv_perception/usv_vision/config/gmsl_camera_algo_640.yaml
+
+
+3. 确认设备节点存在
+------------------
+ls -l /dev/video4
+ls -l /dev/video5
+
+
+4. 检查前路相机底层真实 fps
+--------------------------
+gst-launch-1.0 -ev \
+  v4l2src device=/dev/video4 ! \
+  "video/x-raw, format=(string)UYVY, width=(int)1920, height=(int)1536" ! \
+  fpsdisplaysink text-overlay=1 video-sink=fakesink sync=0
+
+cczh@ubuntu:~/USV_ROS$ gst-launch-1.0 -ev \
+  v4l2src device=/dev/video4 ! \
+  "video/x-raw, format=(string)UYVY, width=(int)1920, height=(int)1536" ! \
+  fpsdisplaysink text-overlay=1 video-sink=fakesink sync=0
+设置暂停管道 ...
+管道正在使用且不需要 PREROLL ...
+/GstPipeline:pipeline0/GstFPSDisplaySink:fpsdisplaysink0/GstFakeSink:fakesink0: sync = false
+管道被 PREROLLED ...
+设置播放管道 ...
+New clock: GstSystemClock
+/GstPipeline:pipeline0/GstV4l2Src:v4l2src0.GstPad:src: caps = video/x-raw, format=(string)UYVY, width=(int)1920, height=(int)1536, framerate=(fraction)30/1, interlace-mode=(string)progressive, colorimetry=(string)2:4:7:1
+/GstPipeline:pipeline0/GstCapsFilter:capsfilter0.GstPad:src: caps = video/x-raw, format=(string)UYVY, width=(int)1920, height=(int)1536, framerate=(fraction)30/1, interlace-mode=(string)progressive, colorimetry=(string)2:4:7:1
+/GstPipeline:pipeline0/GstFPSDisplaySink:fpsdisplaysink0.GstGhostPad:sink.GstProxyPad:proxypad0: caps = video/x-raw, format=(string)UYVY, width=(int)1920, height=(int)1536, framerate=(fraction)30/1, interlace-mode=(string)progressive, colorimetry=(string)2:4:7:1
+/GstPipeline:pipeline0/GstFPSDisplaySink:fpsdisplaysink0/GstTextOverlay:fps-display-text-overlay.GstPad:src: caps = video/x-raw(memory:SystemMemory, meta:GstVideoOverlayComposition), format=(string)UYVY, width=(int)1920, height=(int)1536, framerate=(fraction)30/1, interlace-mode=(string)progressive, colorimetry=(string)2:4:7:1
+/GstPipeline:pipeline0/GstFPSDisplaySink:fpsdisplaysink0/GstFakeSink:fakesink0.GstPad:sink: caps = video/x-raw(memory:SystemMemory, meta:GstVideoOverlayComposition), format=(string)UYVY, width=(int)1920, height=(int)1536, framerate=(fraction)30/1, interlace-mode=(string)progressive, colorimetry=(string)2:4:7:1
+/GstPipeline:pipeline0/GstFPSDisplaySink:fpsdisplaysink0/GstTextOverlay:fps-display-text-overlay.GstPad:src: caps = video/x-raw, format=(string)UYVY, width=(int)1920, height=(int)1536, framerate=(fraction)30/1, interlace-mode=(string)progressive, colorimetry=(string)2:4:7:1
+/GstPipeline:pipeline0/GstFPSDisplaySink:fpsdisplaysink0/GstFakeSink:fakesink0.GstPad:sink: caps = video/x-raw, format=(string)UYVY, width=(int)1920, height=(int)1536, framerate=(fraction)30/1, interlace-mode=(string)progressive, colorimetry=(string)2:4:7:1
+/GstPipeline:pipeline0/GstFPSDisplaySink:fpsdisplaysink0/GstTextOverlay:fps-display-text-overlay.GstPad:video_sink: caps = video/x-raw, format=(string)UYVY, width=(int)1920, height=(int)1536, framerate=(fraction)30/1, interlace-mode=(string)progressive, colorimetry=(string)2:4:7:1
+/GstPipeline:pipeline0/GstFPSDisplaySink:fpsdisplaysink0.GstGhostPad:sink: caps = video/x-raw, format=(string)UYVY, width=(int)1920, height=(int)1536, framerate=(fraction)30/1, interlace-mode=(string)progressive, colorimetry=(string)2:4:7:1
+/GstPipeline:pipeline0/GstCapsFilter:capsfilter0.GstPad:sink: caps = video/x-raw, format=(string)UYVY, width=(int)1920, height=(int)1536, framerate=(fraction)30/1, interlace-mode=(string)progressive, colorimetry=(string)2:4:7:1
+重新分配延迟时间...
+/GstPipeline:pipeline0/GstFPSDisplaySink:fpsdisplaysink0/GstFakeSink:fakesink0: sync = false
+/GstPipeline:pipeline0/GstFPSDisplaySink:fpsdisplaysink0/GstTextOverlay:fps-display-text-overlay: text = rendered: 17, dropped: 0, current: 31.90, average: 31.90
+/GstPipeline:pipeline0/GstFPSDisplaySink:fpsdisplaysink0: last-message = rendered: 17, dropped: 0, current: 31.90, average: 31.90
+/GstPipeline:pipeline0/GstFPSDisplaySink:fpsdisplaysink0/GstTextOverlay:fps-display-text-overlay: text = rendered: 32, dropped: 0, current: 29.44, average: 30.70
+/GstPipeline:pipeline0/GstFPSDisplaySink:fpsdisplaysink0: last-message = rendered: 32, dropped: 0, current: 29.44, average: 30.70
+/GstPipeline:pipeline0/GstFPSDisplaySink:fpsdisplaysink0/GstTextOverlay:fps-display-text-overlay: text = rendered: 48, dropped: 0, current: 30.01, average: 30.46
+/GstPipeline:pipeline0/GstFPSDisplaySink:fpsdisplaysink0: last-message = rendered: 48, dropped: 0, current: 30.01, average: 30.46
+/GstPipeline:pipeline0/GstFPSDisplaySink:fpsdisplaysink0/GstTextOverlay:fps-display-text-overlay: text = rendered: 64, dropped: 0, current: 30.03, average: 30.35
+/GstPipeline:pipeline0/GstFPSDisplaySink:fpsdisplaysink0: last-message = rendered: 64, dropped: 0, current: 30.03, average: 30.35
+/GstPipeline:pipeline0/GstFPSDisplaySink:fpsdisplaysink0/GstTextOverlay:fps-display-text-overlay: text = rendered: 79, dropped: 0, current: 29.97, average: 30.28
+/GstPipeline:pipeline0/GstFPSDisplaySink:fpsdisplaysink0: last-message = rendered: 79, dropped: 0, current: 29.97, average: 30.28
+/GstPipeline:pipeline0/GstFPSDisplaySink:fpsdisplaysink0/GstTextOverlay:fps-display-text-overlay: text = rendered: 94, dropped: 0, current: 29.99, average: 30.23
+
+5. 检查后路相机底层真实 fps
+--------------------------
+gst-launch-1.0 -ev \
+  v4l2src device=/dev/video5 ! \
+  "video/x-raw, format=(string)UYVY, width=(int)1920, height=(int)1536" ! \
+  fpsdisplaysink text-overlay=1 video-sink=fakesink sync=0
+
+cczh@ubuntu:~/USV_ROS$ gst-launch-1.0 -ev \
+  v4l2src device=/dev/video5 ! \
+  "video/x-raw, format=(string)UYVY, width=(int)1920, height=(int)1536" ! \
+  fpsdisplaysink text-overlay=1 video-sink=fakesink sync=0
+设置暂停管道 ...
+管道正在使用且不需要 PREROLL ...
+/GstPipeline:pipeline0/GstFPSDisplaySink:fpsdisplaysink0/GstFakeSink:fakesink0: sync = false
+管道被 PREROLLED ...
+设置播放管道 ...
+New clock: GstSystemClock
+/GstPipeline:pipeline0/GstV4l2Src:v4l2src0.GstPad:src: caps = video/x-raw, format=(string)UYVY, width=(int)1920, height=(int)1536, framerate=(fraction)30/1, interlace-mode=(string)progressive, colorimetry=(string)2:4:7:1
+/GstPipeline:pipeline0/GstCapsFilter:capsfilter0.GstPad:src: caps = video/x-raw, format=(string)UYVY, width=(int)1920, height=(int)1536, framerate=(fraction)30/1, interlace-mode=(string)progressive, colorimetry=(string)2:4:7:1
+/GstPipeline:pipeline0/GstFPSDisplaySink:fpsdisplaysink0.GstGhostPad:sink.GstProxyPad:proxypad0: caps = video/x-raw, format=(string)UYVY, width=(int)1920, height=(int)1536, framerate=(fraction)30/1, interlace-mode=(string)progressive, colorimetry=(string)2:4:7:1
+/GstPipeline:pipeline0/GstFPSDisplaySink:fpsdisplaysink0/GstTextOverlay:fps-display-text-overlay.GstPad:src: caps = video/x-raw(memory:SystemMemory, meta:GstVideoOverlayComposition), format=(string)UYVY, width=(int)1920, height=(int)1536, framerate=(fraction)30/1, interlace-mode=(string)progressive, colorimetry=(string)2:4:7:1
+/GstPipeline:pipeline0/GstFPSDisplaySink:fpsdisplaysink0/GstFakeSink:fakesink0.GstPad:sink: caps = video/x-raw(memory:SystemMemory, meta:GstVideoOverlayComposition), format=(string)UYVY, width=(int)1920, height=(int)1536, framerate=(fraction)30/1, interlace-mode=(string)progressive, colorimetry=(string)2:4:7:1
+/GstPipeline:pipeline0/GstFPSDisplaySink:fpsdisplaysink0/GstTextOverlay:fps-display-text-overlay.GstPad:src: caps = video/x-raw, format=(string)UYVY, width=(int)1920, height=(int)1536, framerate=(fraction)30/1, interlace-mode=(string)progressive, colorimetry=(string)2:4:7:1
+/GstPipeline:pipeline0/GstFPSDisplaySink:fpsdisplaysink0/GstFakeSink:fakesink0.GstPad:sink: caps = video/x-raw, format=(string)UYVY, width=(int)1920, height=(int)1536, framerate=(fraction)30/1, interlace-mode=(string)progressive, colorimetry=(string)2:4:7:1
+/GstPipeline:pipeline0/GstFPSDisplaySink:fpsdisplaysink0/GstTextOverlay:fps-display-text-overlay.GstPad:video_sink: caps = video/x-raw, format=(string)UYVY, width=(int)1920, height=(int)1536, framerate=(fraction)30/1, interlace-mode=(string)progressive, colorimetry=(string)2:4:7:1
+/GstPipeline:pipeline0/GstFPSDisplaySink:fpsdisplaysink0.GstGhostPad:sink: caps = video/x-raw, format=(string)UYVY, width=(int)1920, height=(int)1536, framerate=(fraction)30/1, interlace-mode=(string)progressive, colorimetry=(string)2:4:7:1
+/GstPipeline:pipeline0/GstCapsFilter:capsfilter0.GstPad:sink: caps = video/x-raw, format=(string)UYVY, width=(int)1920, height=(int)1536, framerate=(fraction)30/1, interlace-mode=(string)progressive, colorimetry=(string)2:4:7:1
+重新分配延迟时间...
+/GstPipeline:pipeline0/GstFPSDisplaySink:fpsdisplaysink0/GstFakeSink:fakesink0: sync = false
+/GstPipeline:pipeline0/GstFPSDisplaySink:fpsdisplaysink0/GstTextOverlay:fps-display-text-overlay: text = rendered: 17, dropped: 0, current: 31.89, average: 31.89
+/GstPipeline:pipeline0/GstFPSDisplaySink:fpsdisplaysink0: last-message = rendered: 17, dropped: 0, current: 31.89, average: 31.89
+/GstPipeline:pipeline0/GstFPSDisplaySink:fpsdisplaysink0/GstTextOverlay:fps-display-text-overlay: text = rendered: 32, dropped: 0, current: 29.47, average: 30.70
+/GstPipeline:pipeline0/GstFPSDisplaySink:fpsdisplaysink0: last-message = rendered: 32, dropped: 0, current: 29.47, average: 30.70
+
+
+6. 检查 640x640 缩放管线是否真的协商成功
+--------------------------------------
+gst-launch-1.0 -v \
+  v4l2src device=/dev/video4 ! \
+  video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! \
+  videoscale ! videoconvert ! \
+  video/x-raw,format=BGR,width=640,height=640 ! \
+  fakesink
+
+cczh@ubuntu:~/USV_ROS$ gst-launch-1.0 -v \
+  v4l2src device=/dev/video4 ! \
+  video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! \
+  videoscale ! videoconvert ! \
+  video/x-raw,format=BGR,width=640,height=640 ! \
+  fakesink
+设置暂停管道 ...
+管道正在使用且不需要 PREROLL ...
+管道被 PREROLLED ...
+设置播放管道 ...
+New clock: GstSystemClock
+/GstPipeline:pipeline0/GstV4l2Src:v4l2src0.GstPad:src: caps = video/x-raw, format=(string)UYVY, width=(int)1920, height=(int)1536, framerate=(fraction)30/1, interlace-mode=(string)progressive, colorimetry=(string)2:4:7:1
+/GstPipeline:pipeline0/GstCapsFilter:capsfilter0.GstPad:src: caps = video/x-raw, format=(string)UYVY, width=(int)1920, height=(int)1536, framerate=(fraction)30/1, interlace-mode=(string)progressive, colorimetry=(string)2:4:7:1
+/GstPipeline:pipeline0/GstVideoScale:videoscale0.GstPad:src: caps = video/x-raw, format=(string)UYVY, width=(int)640, height=(int)640, framerate=(fraction)30/1, interlace-mode=(string)progressive, colorimetry=(string)2:4:7:1, pixel-aspect-ratio=(fraction)5/4
+/GstPipeline:pipeline0/GstVideoConvert:videoconvert0.GstPad:src: caps = video/x-raw, width=(int)640, height=(int)640, framerate=(fraction)30/1, interlace-mode=(string)progressive, pixel-aspect-ratio=(fraction)5/4, format=(string)BGR, colorimetry=(string)sRGB
+/GstPipeline:pipeline0/GstCapsFilter:capsfilter1.GstPad:src: caps = video/x-raw, width=(int)640, height=(int)640, framerate=(fraction)30/1, interlace-mode=(string)progressive, pixel-aspect-ratio=(fraction)5/4, format=(string)BGR, colorimetry=(string)sRGB
+/GstPipeline:pipeline0/GstFakeSink:fakesink0.GstPad:sink: caps = video/x-raw, width=(int)640, height=(int)640, framerate=(fraction)30/1, interlace-mode=(string)progressive, pixel-aspect-ratio=(fraction)5/4, format=(string)BGR, colorimetry=(string)sRGB
+/GstPipeline:pipeline0/GstCapsFilter:capsfilter1.GstPad:sink: caps = video/x-raw, width=(int)640, height=(int)640, framerate=(fraction)30/1, interlace-mode=(string)progressive, pixel-aspect-ratio=(fraction)5/4, format=(string)BGR, colorimetry=(string)sRGB
+/GstPipeline:pipeline0/GstVideoConvert:videoconvert0.GstPad:sink: caps = video/x-raw, format=(string)UYVY, width=(int)640, height=(int)640, framerate=(fraction)30/1, interlace-mode=(string)progressive, colorimetry=(string)2:4:7:1, pixel-aspect-ratio=(fraction)5/4
+/GstPipeline:pipeline0/GstVideoScale:videoscale0.GstPad:sink: caps = video/x-raw, format=(string)UYVY, width=(int)1920, height=(int)1536, framerate=(fraction)30/1, interlace-mode=(string)progressive, colorimetry=(string)2:4:7:1
+/GstPipeline:pipeline0/GstCapsFilter:capsfilter0.GstPad:sink: caps = video/x-raw, format=(string)UYVY, width=(int)1920, height=(int)1536, framerate=(fraction)30/1, interlace-mode=(string)progressive, colorimetry=(string)2:4:7:1
+重新分配延迟时间...9.
+
+
+
+7. 检查 640x640 缩放管线的实际 fps
+--------------------------------
+gst-launch-1.0 -ev \
+  v4l2src device=/dev/video4 ! \
+  video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! \
+  videoscale ! videoconvert ! \
+  video/x-raw,format=BGR,width=640,height=640 ! \
+  fpsdisplaysink text-overlay=1 video-sink=fakesink sync=0
+
+cczh@ubuntu:~/USV_ROS$ gst-launch-1.0 -ev \
+  v4l2src device=/dev/video4 ! \
+  video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! \
+  videoscale ! videoconvert ! \
+  video/x-raw,format=BGR,width=640,height=640 ! \
+  fpsdisplaysink text-overlay=1 video-sink=fakesink sync=0
+设置暂停管道 ...
+管道正在使用且不需要 PREROLL ...
+/GstPipeline:pipeline0/GstFPSDisplaySink:fpsdisplaysink0/GstFakeSink:fakesink0: sync = false
+管道被 PREROLLED ...
+设置播放管道 ...
+New clock: GstSystemClock
+/GstPipeline:pipeline0/GstV4l2Src:v4l2src0.GstPad:src: caps = video/x-raw, format=(string)UYVY, width=(int)1920, height=(int)1536, framerate=(fraction)30/1, interlace-mode=(string)progressive, colorimetry=(string)2:4:7:1
+/GstPipeline:pipeline0/GstCapsFilter:capsfilter0.GstPad:src: caps = video/x-raw, format=(string)UYVY, width=(int)1920, height=(int)1536, framerate=(fraction)30/1, interlace-mode=(string)progressive, colorimetry=(string)2:4:7:1
+/GstPipeline:pipeline0/GstVideoScale:videoscale0.GstPad:src: caps = video/x-raw, format=(string)UYVY, width=(int)640, height=(int)640, framerate=(fraction)30/1, interlace-mode=(string)progressive, colorimetry=(string)2:4:7:1, pixel-aspect-ratio=(fraction)5/4
+/GstPipeline:pipeline0/GstVideoConvert:videoconvert0.GstPad:src: caps = video/x-raw, width=(int)640, height=(int)640, framerate=(fraction)30/1, interlace-mode=(string)progressive, pixel-aspect-ratio=(fraction)5/4, format=(string)BGR, colorimetry=(string)sRGB
+/GstPipeline:pipeline0/GstCapsFilter:capsfilter1.GstPad:src: caps = video/x-raw, width=(int)640, height=(int)640, framerate=(fraction)30/1, interlace-mode=(string)progressive, pixel-aspect-ratio=(fraction)5/4, format=(string)BGR, colorimetry=(string)sRGB
+/GstPipeline:pipeline0/GstFPSDisplaySink:fpsdisplaysink0.GstGhostPad:sink.GstProxyPad:proxypad0: caps = video/x-raw, width=(int)640, height=(int)640, framerate=(fraction)30/1, interlace-mode=(string)progressive, pixel-aspect-ratio=(fraction)5/4, format=(string)BGR, colorimetry=(string)sRGB
+/GstPipeline:pipeline0/GstFPSDisplaySink:fpsdisplaysink0/GstTextOverlay:fps-display-text-overlay.GstPad:src: caps = video/x-raw(memory:SystemMemory, meta:GstVideoOverlayComposition), width=(int)640, height=(int)640, framerate=(fraction)30/1, interlace-mode=(string)progressive, pixel-aspect-ratio=(fraction)5/4, format=(string)BGR, colorimetry=(string)sRGB
+/GstPipeline:pipeline0/GstFPSDisplaySink:fpsdisplaysink0/GstFakeSink:fakesink0.GstPad:sink: caps = video/x-raw(memory:SystemMemory, meta:GstVideoOverlayComposition), width=(int)640, height=(int)640, framerate=(fraction)30/1, interlace-mode=(string)progressive, pixel-aspect-ratio=(fraction)5/4, format=(string)BGR, colorimetry=(string)sRGB
+/GstPipeline:pipeline0/GstFPSDisplaySink:fpsdisplaysink0/GstTextOverlay:fps-display-text-overlay.GstPad:src: caps = video/x-raw, width=(int)640, height=(int)640, framerate=(fraction)30/1, interlace-mode=(string)progressive, pixel-aspect-ratio=(fraction)5/4, format=(string)BGR, colorimetry=(string)sRGB
+/GstPipeline:pipeline0/GstFPSDisplaySink:fpsdisplaysink0/GstFakeSink:fakesink0.GstPad:sink: caps = video/x-raw, width=(int)640, height=(int)640, framerate=(fraction)30/1, interlace-mode=(string)progressive, pixel-aspect-ratio=(fraction)5/4, format=(string)BGR, colorimetry=(string)sRGB
+/GstPipeline:pipeline0/GstFPSDisplaySink:fpsdisplaysink0/GstTextOverlay:fps-display-text-overlay.GstPad:video_sink: caps = video/x-raw, width=(int)640, height=(int)640, framerate=(fraction)30/1, interlace-mode=(string)progressive, pixel-aspect-ratio=(fraction)5/4, format=(string)BGR, colorimetry=(string)sRGB
+/GstPipeline:pipeline0/GstFPSDisplaySink:fpsdisplaysink0.GstGhostPad:sink: caps = video/x-raw, width=(int)640, height=(int)640, framerate=(fraction)30/1, interlace-mode=(string)progressive, pixel-aspect-ratio=(fraction)5/4, format=(string)BGR, colorimetry=(string)sRGB
+/GstPipeline:pipeline0/GstCapsFilter:capsfilter1.GstPad:sink: caps = video/x-raw, width=(int)640, height=(int)640, framerate=(fraction)30/1, interlace-mode=(string)progressive, pixel-aspect-ratio=(fraction)5/4, format=(string)BGR, colorimetry=(string)sRGB
+/GstPipeline:pipeline0/GstVideoConvert:videoconvert0.GstPad:sink: caps = video/x-raw, format=(string)UYVY, width=(int)640, height=(int)640, framerate=(fraction)30/1, interlace-mode=(string)progressive, colorimetry=(string)2:4:7:1, pixel-aspect-ratio=(fraction)5/4
+/GstPipeline:pipeline0/GstVideoScale:videoscale0.GstPad:sink: caps = video/x-raw, format=(string)UYVY, width=(int)1920, height=(int)1536, framerate=(fraction)30/1, interlace-mode=(string)progressive, colorimetry=(string)2:4:7:1
+/GstPipeline:pipeline0/GstCapsFilter:capsfilter0.GstPad:sink: caps = video/x-raw, format=(string)UYVY, width=(int)1920, height=(int)1536, framerate=(fraction)30/1, interlace-mode=(string)progressive, colorimetry=(string)2:4:7:1
+重新分配延迟时间...9.
+/GstPipeline:pipeline0/GstFPSDisplaySink:fpsdisplaysink0/GstFakeSink:fakesink0: sync = false
+/GstPipeline:pipeline0/GstFPSDisplaySink:fpsdisplaysink0/GstTextOverlay:fps-display-text-overlay: text = rendered: 5, dropped: 0, current: 9.02, average: 9.02
+/GstPipeline:pipeline0/GstFPSDisplaySink:fpsdisplaysink0: last-message = rendered: 5, dropped: 0, current: 9.02, average: 9.02
+/GstPipeline:pipeline0/GstFPSDisplaySink:fpsdisplaysink0/GstTextOverlay:fps-display-text-overlay: text = rendered: 9, dropped: 0, current: 7.07, average: 8.03
+/GstPipeline:pipeline0/GstFPSDisplaySink:fpsdisplaysink0: last-message = rendered: 9, dropped: 0, current: 7.07, average: 8.03
+
+8. 单独启动前路高分辨率 ROS 链
+-----------------------------
+cd /home/cczh/USV_ROS
+source /opt/ros/humble/setup.bash
+source install/setup.bash
+ros2 launch usv_vision usv_vision.launch.py \
+  namespace:=front_gmsl \
+  gmsl_config:=/home/cczh/USV_ROS/src/usv_perception/usv_vision/config/gmsl_camera.yaml
+
+
+9. 检查前路高分辨率 ROS 输出
+--------------------------
+ros2 topic echo /front_gmsl/driver_status --once
+ros2 topic echo /front_gmsl/frame_timing_json --once
+ros2 topic hz /front_gmsl/image_raw
+ros2 topic bw /front_gmsl/image_raw
+
+cczh@ubuntu:~$ ros2 topic echo /front_gmsl/driver_status --once
+^Ccczh@ubuntu:~ros2 topic echo /front_gmsl/frame_timing_json --oncece
+data: '{"frame_id": "front_gmsl_link", "source_type": "v4l2_gmsl", "backend": "gstreamer", "source": "/dev/video4", "image": {"width": ...'
+---
+cczh@ubuntu:~$ ros2 topic hz /front_gmsl/image_raw
+average rate: 6.609
+	min: 0.146s max: 0.155s std dev: 0.00314s window: 8
+average rate: 6.634
+	min: 0.146s max: 0.155s std dev: 0.00287s window: 15
+average rate: 6.330
+	min: 0.146s max: 0.301s std dev: 0.03203s window: 21
+^Ccczh@ubuntu:~ros2 topic bw /front_gmsl/image_rawaw
+Subscribed to [/front_gmsl/image_raw]
+62.35 MB/s from 5 messages
+	Message size mean: 8.85 MB min: 8.85 MB max: 8.85 MB
+62.11 MB/s from 12 messages
+	Message size mean: 8.85 MB min: 8.85 MB max: 8.85 MB
+58.77 MB/s from 18 messages
+	Message size mean: 8.85 MB min: 8.85 MB max: 8.85 MB
+^Ccczh@ubuntu:~$ 
+
+10. 单独启动前路低分辨率算法链
+----------------------------
+cd /home/cczh/USV_ROS
+source /opt/ros/humble/setup.bash
+source install/setup.bash
+ros2 launch usv_vision usv_vision.launch.py \
+  namespace:=front_gmsl_algo \
+  gmsl_config:=/home/cczh/USV_ROS/src/usv_perception/usv_vision/config/gmsl_camera_algo_640.yaml
+
+
+11. 检查前路低分辨率算法链输出
+----------------------------
+ros2 topic echo /front_gmsl_algo/driver_status --once
+ros2 topic echo /front_gmsl_algo/frame_timing_json --once
+ros2 topic hz /front_gmsl_algo/image_raw
+ros2 topic bw /front_gmsl_algo/image_raw
+
+cczh@ubuntu:~$ ros2 topic echo /front_gmsl_algo/driver_status --once
+^Ccczh@ubuntu:~ros2 topic echo /front_gmsl_algo/frame_timing_json --oncece
+data: '{"frame_id": "front_gmsl_link", "source_type": "v4l2_gmsl_algo", "backend": "gstreamer", "source": "/dev/video4", "image": {"wid...'
+---
+cczh@ubuntu:~$ ros2 topic hz /front_gmsl_algo/image_raw
+WARNING: topic [/front_gmsl_algo/image_raw] does not appear to be published yet
+average rate: 7.274
+	min: 0.134s max: 0.141s std dev: 0.00226s window: 9
+average rate: 7.329
+	min: 0.134s max: 0.141s std dev: 0.00216s window: 17
+average rate: 7.250
+	min: 0.134s max: 0.147s std dev: 0.00329s window: 25
+average rate: 7.239
+	min: 0.134s max: 0.147s std dev: 0.00328s window: 33
+^Ccczh@ubuntu:~ros2 topic bw /front_gmsl_algo/image_rawaw
+Subscribed to [/front_gmsl_algo/image_raw]
+9.75 MB/s from 6 messages
+	Message size mean: 1.23 MB min: 1.23 MB max: 1.23 MB
+9.80 MB/s from 14 messages
+	Message size mean: 1.23 MB min: 1.23 MB max: 1.23 MB
+9.36 MB/s from 21 messages
+	Message size mean: 1.23 MB min: 1.23 MB max: 1.23 MB
+9.49 MB/s from 29 messages
+	Message size mean: 1.23 MB min: 1.23 MB max: 1.23 MB
+^Ccczh@ubuntu:~$ 
+
+12. 单独启动后路高分辨率 ROS 链
+-----------------------------
+cd /home/cczh/USV_ROS
+source /opt/ros/humble/setup.bash
+source install/setup.bash
+ros2 launch usv_vision usv_vision.launch.py \
+  namespace:=rear_gmsl \
+  gmsl_config:=/home/cczh/USV_ROS/src/usv_perception/usv_vision/config/gmsl_camera_rear.yaml
+
+
+13. 检查后路高分辨率 ROS 输出
+---------------------------
+ros2 topic echo /rear_gmsl/driver_status --once
+ros2 topic echo /rear_gmsl/frame_timing_json --once
+ros2 topic hz /rear_gmsl/image_raw
+ros2 topic bw /rear_gmsl/image_raw
+
+cczh@ubuntu:~$ ros2 topic echo /rear_gmsl/driver_status --once
+^Ccczh@ubuntu:~ros2 topic echo /rear_gmsl/frame_timing_json --oncece
+data: '{"frame_id": "rear_gmsl_link", "source_type": "v4l2_gmsl", "backend": "gstreamer", "source": "/dev/video5", "image": {"width": 1...'
+---
+cczh@ubuntu:~$ ros2 topic hz /rear_gmsl/image_raw
+average rate: 6.624
+	min: 0.148s max: 0.155s std dev: 0.00235s window: 8
+average rate: 6.623
+	min: 0.147s max: 0.155s std dev: 0.00245s window: 15
+average rate: 6.632
+	min: 0.147s max: 0.155s std dev: 0.00245s window: 22
+^Ccczh@ubuntu:~ros2 topic bw /rear_gmsl/image_rawaw
+Subscribed to [/rear_gmsl/image_raw]
+65.32 MB/s from 6 messages
+	Message size mean: 8.85 MB min: 8.85 MB max: 8.85 MB
+63.40 MB/s from 13 messages
+	Message size mean: 8.85 MB min: 8.85 MB max: 8.85 MB
+59.76 MB/s from 19 messages
+	Message size mean: 8.85 MB min: 8.85 MB max: 8.85 MB
+^Ccczh@ubuntu:~$ 
+
+
+14. 双路同时启动
+---------------
+cd /home/cczh/USV_ROS
+source /opt/ros/humble/setup.bash
+source install/setup.bash
+ros2 launch usv_vision dual_gmsl.launch.py
+
+
+15. 双路同时检查
+---------------
+ros2 topic hz /front_gmsl/image_raw
+ros2 topic bw /front_gmsl/image_raw
+ros2 topic hz /rear_gmsl/image_raw
+ros2 topic bw /rear_gmsl/image_raw
+
+cczh@ubuntu:~$ ros2 topic hz /front_gmsl/image_raw
+average rate: 6.598
+	min: 0.148s max: 0.156s std dev: 0.00230s window: 8
+average rate: 6.595
+	min: 0.148s max: 0.156s std dev: 0.00209s window: 15
+^Ccczh@ubuntu:~ros2 topic bw /front_gmsl/image_rawaw
+Subscribed to [/front_gmsl/image_raw]
+60.69 MB/s from 4 messages
+	Message size mean: 8.85 MB min: 8.85 MB max: 8.85 MB
+50.30 MB/s from 9 messages
+	Message size mean: 8.85 MB min: 8.85 MB max: 8.85 MB
+54.81 MB/s from 16 messages
+	Message size mean: 8.85 MB min: 8.85 MB max: 8.85 MB
+54.32 MB/s from 22 messages
+	Message size mean: 8.85 MB min: 8.85 MB max: 8.85 MB
+^Ccczh@ubuntu:~ros2 topic hz /rear_gmsl/image_rawaw
+WARNING: topic [/rear_gmsl/image_raw] does not appear to be published yet
+average rate: 6.634
+	min: 0.149s max: 0.152s std dev: 0.00131s window: 8
+average rate: 6.622
+	min: 0.149s max: 0.153s std dev: 0.00150s window: 15
+average rate: 6.627
+	min: 0.149s max: 0.153s std dev: 0.00168s window: 22
+^Ccczh@ubuntu:~ros2 topic bw /rear_gmsl/image_rawaw
+WARNING: topic [/rear_gmsl/image_raw] does not appear to be published yet
+Subscribed to [/rear_gmsl/image_raw]
+103.77 MB/s from 2 messages
+	Message size mean: 8.85 MB min: 8.85 MB max: 8.85 MB
+60.47 MB/s from 8 messages
+	Message size mean: 8.85 MB min: 8.85 MB max: 8.85 MB
+57.07 MB/s from 14 messages
+	Message size mean: 8.85 MB min: 8.85 MB max: 8.85 MB
+58.61 MB/s from 21 messages
+	Message size mean: 8.85 MB min: 8.85 MB max: 8.85 MB
+57.28 MB/s from 27 messages
+	Message size mean: 8.85 MB min: 8.85 MB max: 8.85 MB
+^Ccczh@ubuntu:~$ 
+
+16. 后路 RTSP 转发链检查
+-----------------------
+cd /home/cczh/USV_ROS
+./mediamtx
+
+cd /home/cczh/USV_ROS
+bash src/usv_perception/usv_vision/scripts/gmsl_to_rtsp.sh /dev/video5 rtsp://127.0.0.1:8554/cam1
+
+ffplay -stats rtsp://10.42.0.81:8554/cam1
+
+gst-launch-1.0 -v \
+  rtspsrc location=rtsp://10.42.0.81:8554/cam1 latency=200 protocols=tcp ! \
+  rtph264depay ! h264parse ! avdec_h264 ! \
+  fpsdisplaysink text-overlay=1 video-sink=fakesink sync=0
+
+mcu 192.168.1.202 推流到服务器
+
+17. 一键健康检查
+---------------
+cd /home/cczh/USV_ROS
+bash src/usv_perception/usv_vision/scripts/gmsl_health_check.sh
+CHECK_ROS=1 bash src/usv_perception/usv_vision/scripts/gmsl_health_check.sh
+
+
+18. 建议你回传给我的关键信息
+--------------------------
+ros2 topic echo /front_gmsl/frame_timing_json --once
+ros2 topic echo /front_gmsl_algo/frame_timing_json --once
+ros2 topic bw /front_gmsl/image_raw
+ros2 topic bw /front_gmsl_algo/image_raw
+gst-launch-1.0 -v \
+  v4l2src device=/dev/video4 ! \
+  video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! \
+  videoscale ! videoconvert ! \
+  video/x-raw,format=BGR,width=640,height=640 ! \
+  fakesink

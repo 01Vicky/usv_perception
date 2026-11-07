@@ -1,0 +1,594 @@
+usv_vision Jetson 从 0 到 1 操作步骤
+=====================================
+
+目标
+----
+当前目标不是做识别推理，而是先把 GMSL 相机采集链跑通。
+
+注意：
+
+  /dev/video4 和 /dev/video5 是两台不同的 GMSL 相机。
+  当前文档里提到的“前路相机”和“后路相机”就是分别指它们。
+
+单路验证时，你可以任选其中一路：
+
+  /dev/video4
+  或
+  /dev/video5
+
+单路验证目标：
+
+    -> GStreamer / V4L2
+    -> ROS 2 image_raw
+    -> camera_info
+    -> frame_timing_json
+    -> driver_status
+
+当前不要求：
+
+  - CUDA 可用
+  - TensorRT 可用
+  - YOLO 推理可用
+
+
+一、先明确当前代码状态
+----------------------
+当前仓库里已经有一个新包：
+
+  src/usv_perception/usv_vision
+
+当前默认只启动 GMSL 采集节点，不默认启动识别节点。
+
+启动入口：
+
+  ros2 launch usv_vision usv_vision.launch.py
+
+默认 GMSL 配置文件：
+
+  src/usv_perception/usv_vision/config/gmsl_camera.yaml
+
+默认配置已经按当前现场链路填写：
+
+  前路相机默认配置：
+    /dev/video4
+    UYVY
+    1920x1536
+    30fps
+
+  后路相机默认配置：
+    /dev/video5
+    UYVY
+    1920x1536
+    30fps
+
+
+二、先检查环境，不要急着编译
+----------------------------
+以下检查建议按顺序执行。
+
+
+2.1 检查 ROS 2 是否已安装
+-------------------------
+执行：
+
+  ls /opt/ros
+
+如果能看到类似：
+
+  humble
+
+说明 ROS 2 已安装。
+
+如果没有 `/opt/ros`，说明 ROS 2 还没装，需要先装 ROS 2。
+
+后续本文默认使用：
+
+  /opt/ros/humble/setup.bash
+
+如果你板子实际装的是别的发行版，把下面所有 `humble` 改成你的实际发行版。
+
+
+2.2 检查基础 ROS 环境能不能 source
+---------------------------------
+执行：
+
+  source /opt/ros/humble/setup.bash
+  ros2 pkg list | head
+
+如果 `ros2` 命令能正常执行，说明 ROS 2 基础可用。
+
+如果报：
+
+  ros2: command not found
+
+说明 ROS 2 没装好，或者没 source 对。
+
+
+2.3 检查 Python 版本
+-------------------
+执行：
+
+  python3 --version
+
+建议至少：
+
+  Python 3.10.x
+
+
+2.4 检查 GMSL 相机设备节点是否存在
+---------------------------------
+执行：
+
+  ls /dev/video*
+
+你当前期望至少看到：
+
+  /dev/video4
+  /dev/video5
+
+如果没有，先不要继续编译，先排驱动、线缆、上电、设备枚举问题。
+
+这里默认理解为：
+
+  /dev/video4 -> 前路相机
+  /dev/video5 -> 后路相机
+
+
+2.5 检查现场已知可用的 gst 命令是否还能跑
+----------------------------------------
+先验证本地显示链：
+
+  gst-launch-1.0 -ev v4l2src device=/dev/video4 ! "video/x-raw, format=(string)UYVY, width=(int)1920, height=(int)1536" ! fpsdisplaysink text-overlay=0 video-sink=xvimagesink sync=0
+
+如果这条命令跑不起来，说明问题不在 ROS，先解决相机底层采集。
+
+如果你当前板子没有图形界面，也可以先只检查插件：
+
+  gst-inspect-1.0 v4l2src
+  gst-inspect-1.0 videoconvert
+  gst-inspect-1.0 appsink
+
+
+2.6 检查 OpenCV Python 是否可用
+-------------------------------
+执行：
+
+  python3 -c "import cv2; print(cv2.__version__)"
+
+成功即可。
+
+如果报 `No module named cv2`，后面需要安装 `python3-opencv`。
+
+
+2.7 检查 cv_bridge 是否可用
+--------------------------
+执行：
+
+  python3 -c "from cv_bridge import CvBridge; print('cv_bridge ok')"
+
+成功即可。
+
+如果报 `No module named cv_bridge`，后面需要安装 `ros-humble-cv-bridge`。
+
+
+2.8 检查 jtop 只是辅助，不是阻塞项
+---------------------------------
+jtop 当前信息已经说明：
+
+  CUDA: MISSING
+  TensorRT: MISSING
+
+这不影响当前 GMSL 采集链调试。
+
+当前阶段不需要因为没有 CUDA / TensorRT 而停下来。
+
+
+三、如果环境没配好，按下面补
+--------------------------
+以下命令默认是 Ubuntu 22.04 + ROS 2 Humble。
+
+
+3.1 安装基础 ROS 图像相关依赖
+----------------------------
+执行：
+
+  sudo apt update
+  sudo apt install -y \
+    ros-humble-rclpy \
+    ros-humble-std-msgs \
+    ros-humble-sensor-msgs \
+    ros-humble-cv-bridge \
+    ros-humble-launch \
+    ros-humble-launch-ros \
+    python3-opencv
+
+
+3.2 安装 GStreamer 基础依赖
+--------------------------
+执行：
+
+  sudo apt install -y \
+    gstreamer1.0-tools \
+    gstreamer1.0-plugins-base \
+    gstreamer1.0-plugins-good \
+    gstreamer1.0-plugins-bad \
+    gstreamer1.0-libav
+
+
+3.3 检查 GStreamer 关键插件
+--------------------------
+执行：
+
+  gst-inspect-1.0 v4l2src
+  gst-inspect-1.0 videoconvert
+  gst-inspect-1.0 appsink
+
+如果未来要继续做硬编转发，再额外检查：
+
+  gst-inspect-1.0 nvvidconv
+  gst-inspect-1.0 nvv4l2h264enc
+
+如果 `nvvidconv` 或 `nvv4l2h264enc` 缺失，说明 Jetson 多媒体插件环境不完整，后续 RTSP 转发会受影响。
+
+
+3.4 再次检查 Python 模块
+-----------------------
+执行：
+
+  python3 -c "import cv2; print(cv2.__version__)"
+  python3 -c "from cv_bridge import CvBridge; print('cv_bridge ok')"
+
+
+四、准备代码
+----------
+建议直接把整个工作区拷到 Jetson，不要只单独拷一个 Python 文件。
+
+最少要包含：
+
+  src/usv_interfaces
+  src/usv_perception/usv_vision
+
+假设你已经把工作区放到：
+
+  ~/USV_ROS
+
+
+五、编译前最后检查一次
+--------------------
+执行：
+
+  cd ~/USV_ROS
+  source /opt/ros/humble/setup.bash
+
+检查包目录是否存在：
+
+  ls src/usv_interfaces
+  ls src/usv_perception/usv_vision
+
+
+六、编译
+------
+建议先只编当前需要的两个包：
+
+  cd ~/USV_ROS
+  source /opt/ros/humble/setup.bash
+  colcon build --packages-select usv_interfaces usv_vision
+
+如果编译成功，再执行：
+
+  source install/setup.bash
+
+
+七、如果编译失败，优先看这几类错误
+--------------------------------
+1. `cv_bridge` 找不到
+
+  处理：
+    sudo apt install ros-humble-cv-bridge
+
+2. `sensor_msgs` 找不到
+
+  处理：
+    sudo apt install ros-humble-sensor-msgs
+
+3. `ament_python` / `launch_ros` 找不到
+
+  处理：
+    sudo apt install ros-humble-launch ros-humble-launch-ros
+
+4. `opencv` 找不到
+
+  处理：
+    sudo apt install python3-opencv
+
+5. `usv_interfaces` 相关消息没生成
+
+  处理：
+    确认 `src/usv_interfaces` 在工作区内
+    重新执行：
+
+      colcon build --packages-select usv_interfaces usv_vision
+
+
+八、运行 GMSL 采集节点
+--------------------
+默认只启动 GMSL 节点，不启动 YOLO：
+
+  cd ~/USV_ROS
+  source /opt/ros/humble/setup.bash
+  source install/setup.bash
+  ros2 launch usv_vision usv_vision.launch.py
+
+当前默认 namespace 是：
+
+  front_gmsl
+
+所以你会看到的话题一般是：
+
+  /front_gmsl/image_raw
+  /front_gmsl/camera_info
+  /front_gmsl/frame_timing_json
+  /front_gmsl/driver_status
+
+这一步默认是在验证前路相机 `/dev/video4`。
+
+
+九、运行后怎么检查是否成功
+------------------------
+9.1 先看节点
+
+  ros2 node list
+
+期望至少看到：
+
+  /front_gmsl/gmsl_camera_node
+
+
+9.2 看话题
+
+  ros2 topic list | rg 'image_raw|camera_info|frame_timing_json|driver_status'
+
+
+9.3 看驱动状态
+
+  ros2 topic echo /front_gmsl/driver_status --once
+
+如果正常，应该看到类似：
+
+  state: playing
+  detail: gstreamer
+
+如果失败，可能看到：
+
+  state: error
+  detail: open_failed
+
+
+9.4 看 timing 输出
+
+  ros2 topic echo /front_gmsl/frame_timing_json --once
+
+正常说明图像至少已经被读到并发布过一次。
+
+
+9.5 看图像频率
+
+  ros2 topic hz /front_gmsl/image_raw
+
+如果一切正常，应接近 30Hz，实际略有波动是正常的。
+
+如果只有 5~6Hz，也不代表驱动失败，常见原因是高分辨率 raw BGR 进入 ROS 主链后吞吐过重。
+
+
+十、如果运行失败，按这个顺序排查
+------------------------------
+10.1 先确认底层 gst 命令还能跑
+
+  gst-launch-1.0 -ev v4l2src device=/dev/video4 ! "video/x-raw, format=(string)UYVY, width=(int)1920, height=(int)1536" ! fpsdisplaysink text-overlay=0 video-sink=xvimagesink sync=0
+
+如果这条命令失败，问题不在 ROS 节点。
+
+
+10.2 看 `driver_status`
+
+  ros2 topic echo /front_gmsl/driver_status
+
+如果一直是：
+
+  open_failed
+
+优先排查：
+
+  - `/dev/video4` 是否存在
+  - 分辨率/格式是否匹配
+  - `gstreamer_pipeline` 是否和现场命令一致
+
+
+10.3 如果要单独验证后路相机 `/dev/video5`
+
+编辑配置文件：
+
+  优先直接使用现成的后路配置文件：
+
+  src/usv_perception/usv_vision/config/gmsl_camera_rear.yaml
+
+  启动命令：
+
+    ros2 launch usv_vision usv_vision.launch.py \
+      namespace:=rear_gmsl \
+      gmsl_config:=/absolute/path/to/gmsl_camera_rear.yaml
+
+  如果你确实要手改原配置，再把：
+
+    device_path: "/dev/video4"
+
+  改成：
+
+    device_path: "/dev/video5"
+
+  同时把 `gstreamer_pipeline` 里的 `/dev/video4` 改成 `/dev/video5`。
+
+重新编译通常不需要，只要重新 launch 即可。
+
+
+10.4 如果 OpenCV 打不开 GStreamer 管线
+------------------------------------
+可能原因：
+
+  - OpenCV 没带 GStreamer
+  - GStreamer 插件缺失
+  - 管线字符串不兼容
+
+先检查：
+
+  python3 -c "import cv2; print(cv2.getBuildInformation())" | grep -i gstreamer
+
+如果显示 OpenCV 没带 GStreamer，当前节点就不能靠 `cv2.VideoCapture(..., cv2.CAP_GSTREAMER)` 正常工作。
+
+这种情况下要么换 OpenCV，要么后续改成纯 GStreamer Python/ROS 接法。
+
+
+十一、当前阶段不要做什么
+----------------------
+当前先不要做：
+
+  - 启动 YOLO 推理
+  - 安装 TensorRT 相关 Python 包
+  - 把相机采集、推理、RTSP 转发绑成一个 launch
+
+原因：
+
+  当前板端 CUDA / TensorRT 缺失，先把采集链单独跑通最稳。
+
+
+十二、当前最小验收标准
+--------------------
+满足以下条件即可认为当前阶段成功：
+
+1. `colcon build --packages-select usv_interfaces usv_vision` 成功
+2. `ros2 launch usv_vision usv_vision.launch.py` 能启动
+3. `/front_gmsl/driver_status` 显示 `playing`
+4. `/front_gmsl/image_raw` 有数据
+5. `/front_gmsl/camera_info` 有数据
+6. `/front_gmsl/frame_timing_json` 有数据
+
+
+十二点五、如果高分辨率 raw 只有 5~6fps，怎么处理
+---------------------------------------------
+这通常不是驱动坏了，而是 raw ROS 主链太重。
+
+当前推荐方案：
+
+1. 高分辨率回传链
+
+  后路相机 `/dev/video5 -> H264 -> mediamtx -> RTSP`
+
+  命令：
+
+    bash src/usv_perception/usv_vision/scripts/gmsl_to_rtsp.sh /dev/video5 rtsp://127.0.0.1:8554/cam1
+
+2. 低分辨率算法链
+
+  前路相机 `/dev/video4 -> 640x640 BGR -> ROS image_raw`
+
+  命令：
+
+    ros2 launch usv_vision usv_vision.launch.py \
+      namespace:=front_gmsl_algo \
+      gmsl_config:=/absolute/path/to/gmsl_camera_algo_640.yaml
+
+这样更符合当前板端没有 CUDA / TensorRT 的实际情况。
+
+这里再次强调：
+
+  方案 B 不是让同一台相机同时承担“高分辨率回传”和“低分辨率算法”。
+  当前建议是：
+
+    /dev/video4 负责算法链
+    /dev/video5 负责回传链
+
+
+十三、下一步建议
+--------------
+当前阶段跑通后，再做下面几件事：
+
+1. 增加 `/dev/video5` 第二路配置
+2. 做 dual GMSL launch
+3. 接 RTSP 转发脚本
+4. 等 CUDA / TensorRT 环境具备后，再接识别
+
+补充说明：
+
+当前仓库已经补好下面两项：
+
+  - 第二路配置文件：
+      src/usv_perception/usv_vision/config/gmsl_camera_rear.yaml
+  - 双路启动文件：
+      src/usv_perception/usv_vision/launch/dual_gmsl.launch.py
+
+如果你已经把前路单路跑通，双路启动命令是：
+
+  ros2 launch usv_vision dual_gmsl.launch.py
+
+默认话题会分到两个 namespace：
+
+  /front_gmsl/image_raw
+  /front_gmsl/camera_info
+  /front_gmsl/frame_timing_json
+  /front_gmsl/driver_status
+
+  /rear_gmsl/image_raw
+  /rear_gmsl/camera_info
+  /rear_gmsl/frame_timing_json
+  /rear_gmsl/driver_status
+
+推荐的板端实际操作顺序：
+
+  1. 先单独验证前路相机 `/dev/video4` 的 ROS 采集链
+  2. 再单独验证后路相机 `/dev/video5` 的 RTSP 转发链
+  3. 最后再决定是否同时启动双路采集
+
+
+十五、GMSL 健康检查脚本
+----------------------
+当前仓库已提供：
+
+  src/usv_perception/usv_vision/scripts/gmsl_health_check.sh
+
+作用：
+
+  - 检查 `/dev/video4` 和 `/dev/video5` 是否存在
+  - 检查 GStreamer 关键插件
+  - 检查前后相机单帧采集
+  - 检查后路相机 H264 编码链路
+  - 可选检查 ROS 话题
+  - 输出日志到 `gmsl_check_logs/`
+
+基础用法：
+
+  bash src/usv_perception/usv_vision/scripts/gmsl_health_check.sh
+
+带 ROS 检查：
+
+  CHECK_ROS=1 bash src/usv_perception/usv_vision/scripts/gmsl_health_check.sh
+
+自定义设备或 RTSP 地址：
+
+  FRONT_DEVICE=/dev/video4 \
+  REAR_DEVICE=/dev/video5 \
+  RTSP_URL=rtsp://127.0.0.1:8554/cam1 \
+  bash src/usv_perception/usv_vision/scripts/gmsl_health_check.sh
+
+
+十四、推荐你每次上板都先跑的检查命令
+----------------------------------
+  source /opt/ros/humble/setup.bash
+  python3 --version
+  python3 -c "import cv2; print(cv2.__version__)"
+  python3 -c "from cv_bridge import CvBridge; print('cv_bridge ok')"
+  ls /dev/video*
+  gst-inspect-1.0 v4l2src
+  gst-inspect-1.0 videoconvert
+  gst-inspect-1.0 appsink
+
+然后再决定要不要进入编译和 launch。

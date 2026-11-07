@@ -1,0 +1,57 @@
+// ===== 此文件是8路配置稳定版备份 =====
+// 验证通过：反复启停3次成功，INIT_DONE正常，干净退出
+// 问题：帧率约15Hz（待优化）
+// 备份时间：2026-07-11
+//
+// 使用方法：若需回退，将下面代码段替换到 gmsl_camera_node_cpp.cpp 的 init_gmsl_sdk() 函数中
+
+void init_gmsl_sdk()
+{
+    try {
+        // 从device_path解析camera_no
+        int camera_no = 0;
+        sscanf(device_path_.c_str(), "/dev/video%d", &camera_no);
+
+        // ===== 使用三参数构造函数（与SDK示例一致） =====
+        // 创建camera_context_t数组
+        camera_context_t ctx[1];
+        ctx[0].dev_node = device_path_;
+        ctx[0].camera_fmt_str = pixel_format_;
+        ctx[0].output_fmt_str = "BGRA32";  // 输出格式
+        ctx[0].cam_w = width_;
+        ctx[0].cam_h = height_;
+        ctx[0].out_w = width_;   // 输出全分辨率（不缩放）
+        ctx[0].out_h = height_;  // 输出全分辨率（不缩放）
+
+        // 初始化GMSL SDK配置
+        // ===== 8路配置稳定版：与官方demo匹配 =====
+        sync_out_a_cfg_client_t cfg = {};
+        cfg.sync_camera_num = 8;                        // 与demo默认一致
+        cfg.sync_freq = static_cast<uint8_t>(fps_);
+        cfg.async_camera_num = 0;
+        cfg.async_freq = 0;
+        cfg.sync_camera_bit_draw = 0xff;                // 触发全部8路
+        cfg.sync_camera_bit_mask = (1 << camera_no);    // 关键：掩码非零（修复根因）
+        cfg.async_camera_bit_draw = 0;
+
+        // 初始化异步相机位置数组
+        for (int i = 0; i < 8; i++) {
+            cfg.async_camera_pos[i] = 0;
+        }
+
+        RCLCPP_INFO(this->get_logger(),
+            "Initializing GMSL SDK (8-cam stable): camera_no=%d, sync_num=%d, sync_freq=%d, bit_draw=0x%02x, bit_mask=0x%02x",
+            camera_no, cfg.sync_camera_num, cfg.sync_freq, cfg.sync_camera_bit_draw, cfg.sync_camera_bit_mask);
+
+        // 使用三参数构造函数（与SDK示例一致）
+        gmsl_camera_ = std::make_shared<miivii::MvGmslCamera>(ctx, 1, cfg);
+
+        RCLCPP_INFO(this->get_logger(),
+            "GMSL SDK initialized successfully with camera context");
+
+    } catch (const std::exception& e) {
+        RCLCPP_ERROR(this->get_logger(),
+            "Failed to initialize GMSL SDK: %s. Falling back to ROS timestamp.", e.what());
+        enable_hw_timestamp_ = false;
+    }
+}

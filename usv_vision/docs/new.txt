@@ -1,0 +1,28 @@
+  这次只动了低分辨率算法链配置，没改主节点逻辑。当前文件 src/usv_perception/usv_vision/config/gmsl_camera_algo_640.yaml:1 现在改成优先走：
+  v4l2src -> nvvidconv -> BGRx 640x640 -> videoconvert -> BGR -> appsink
+  同时把 fps 目标改成了 30.0。原来的 CPU 版本我完整备份到了 src/usv_perception/usv_vision/config/gmsl_camera_algo_640_cpu_backup.yaml:1，并且我把这个备份文件也加入了 src/usv_perception/usv_vision/
+  setup.py:1 的安装清单，方便你之后从安装目录回退。
+
+  本地做了静态检查：
+
+
+  你在 Jetson 上直接重新编译后测试这条就行：
+  source install/setup.bash
+  ros2 launch usv_vision usv_vision.launch.py \
+    namespace:=front_gmsl_algo \
+    gmsl_config:=/home/cczh/USV_ROS/src/usv_perception/usv_vision/config/gmsl_camera_algo_640.yaml
+
+  然后看：
+
+  ros2 topic hz /front_gmsl_algo/image_raw
+  ros2 topic bw /front_gmsl_algo/image_raw
+  ros2 topic echo /front_gmsl_algo/frame_timing_json --once
+
+  如果要回退，直接把启动配置切回备份文件：
+
+  ros2 launch usv_vision usv_vision.launch.py \
+    namespace:=front_gmsl_algo \
+    gmsl_config:=/home/cczh/USV_ROS/src/usv_perception/usv_vision/config/gmsl_camera_algo_640_cpu_backup.yaml
+
+  你跑完把新的 hz、bw 和 frame_timing_json 贴给我，我继续判断 OpenCV/ROS 这层还有没有剩余瓶颈。
+

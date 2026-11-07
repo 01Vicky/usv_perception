@@ -1,0 +1,331 @@
+usv_vision 下一轮优化测试命令
+================================
+
+板子工作区路径
+--------------
+/home/cczh/USV_ROS
+
+
+1. 进入工作区并加载环境
+----------------------
+cd /home/cczh/USV_ROS
+source /opt/ros/humble/setup.bash
+source install/setup.bash
+
+
+2. 记录基础环境
+--------------
+python3 --version
+python3 -c "import cv2; print(cv2.__version__)"
+jtop
+
+
+3. 基线：原始 1920x1536 直接测底层 fps
+------------------------------------
+gst-launch-1.0 -ev \
+  v4l2src device=/dev/video4 ! \
+  video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! \
+  fpsdisplaysink text-overlay=1 video-sink=fakesink sync=0
+
+
+4. 基线：当前 CPU 低分辨率 BGR 管线
+---------------------------------
+gst-launch-1.0 -ev \
+  v4l2src device=/dev/video4 ! \
+  video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! \
+  videoscale ! videoconvert ! \
+  video/x-raw,format=BGR,width=640,height=640 ! \
+  fpsdisplaysink text-overlay=1 video-sink=fakesink sync=0
+
+
+5. 只缩放，不转 BGR
+------------------
+gst-launch-1.0 -ev \
+  v4l2src device=/dev/video4 ! \
+  video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! \
+  videoscale ! \
+  video/x-raw,width=640,height=640 ! \
+  fpsdisplaysink text-overlay=1 video-sink=fakesink sync=0
+
+
+6. 尝试 nvvidconv：640x640 BGRx 后再转 BGR
+-----------------------------------------
+gst-launch-1.0 -ev \
+  v4l2src device=/dev/video4 ! \
+  video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! \
+  nvvidconv ! \
+  video/x-raw,format=BGRx,width=640,height=640 ! \
+  videoconvert ! video/x-raw,format=BGR ! \
+  fpsdisplaysink text-overlay=1 video-sink=fakesink sync=0
+
+
+7. 尝试 nvvidconv：640x640 NV12
+------------------------------
+gst-launch-1.0 -ev \
+  v4l2src device=/dev/video4 ! \
+  video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! \
+  nvvidconv ! \
+  video/x-raw,format=NV12,width=640,height=640 ! \
+  fpsdisplaysink text-overlay=1 video-sink=fakesink sync=0
+
+
+8. 查看 640x640 CPU 管线 caps 协商
+-------------------------------
+gst-launch-1.0 -v \
+  v4l2src device=/dev/video4 ! \
+  video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! \
+  videoscale ! videoconvert ! \
+  video/x-raw,format=BGR,width=640,height=640 ! \
+  fakesink
+
+
+9. 查看 nvvidconv 管线 caps 协商
+------------------------------
+gst-launch-1.0 -v \
+  v4l2src device=/dev/video4 ! \
+  video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! \
+  nvvidconv ! \
+  video/x-raw,format=BGRx,width=640,height=640 ! \
+  videoconvert ! video/x-raw,format=BGR ! \
+  fakesink
+
+
+10. 当前 ROS 高分辨率链
+----------------------
+cd /home/cczh/USV_ROS
+source /opt/ros/humble/setup.bash
+source install/setup.bash
+ros2 launch usv_vision usv_vision.launch.py \
+  namespace:=front_gmsl \
+  gmsl_config:=/home/cczh/USV_ROS/src/usv_perception/usv_vision/config/gmsl_camera.yaml
+
+
+11. 当前 ROS 高分辨率链检查
+--------------------------
+ros2 topic echo /front_gmsl/frame_timing_json --once
+ros2 topic hz /front_gmsl/image_raw
+ros2 topic bw /front_gmsl/image_raw
+
+
+12. 当前 ROS 低分辨率算法链
+--------------------------
+cd /home/cczh/USV_ROS
+source /opt/ros/humble/setup.bash
+source install/setup.bash
+ros2 launch usv_vision usv_vision.launch.py \
+  namespace:=front_gmsl_algo \
+  gmsl_config:=/home/cczh/USV_ROS/src/usv_perception/usv_vision/config/gmsl_camera_algo_640.yaml
+
+
+13. 当前 ROS 低分辨率算法链检查
+------------------------------
+ros2 topic echo /front_gmsl_algo/frame_timing_json --once
+ros2 topic hz /front_gmsl_algo/image_raw
+ros2 topic bw /front_gmsl_algo/image_raw
+
+
+14. 后路 RTSP 推流
+-----------------
+cd /home/cczh/USV_ROS
+./mediamtx
+
+cd /home/cczh/USV_ROS
+bash src/usv_perception/usv_vision/scripts/gmsl_to_rtsp.sh /dev/video5 rtsp://127.0.0.1:8554/cam1
+
+
+15. 后路 RTSP 接收 fps
+---------------------
+ffplay -stats rtsp://10.42.0.81:8554/cam1
+
+gst-launch-1.0 -v \
+  rtspsrc location=rtsp://10.42.0.81:8554/cam1 latency=200 protocols=tcp ! \
+  rtph264depay ! h264parse ! avdec_h264 ! \
+  fpsdisplaysink text-overlay=1 video-sink=fakesink sync=0
+
+
+16. 资源记录：单独开一个终端
+--------------------------
+tegrastats --interval 1000
+
+
+17. 资源记录：保存到文件
+----------------------
+mkdir -p /home/cczh/USV_ROS/test_logs
+tegrastats --interval 1000 --logfile /home/cczh/USV_ROS/test_logs/tegrastats_$(date +%Y%m%d_%H%M%S).log
+
+
+18. 记录结果建议
+---------------
+cat <<'EOF'
+case_name,fps_mean,msg_size_mb,cpu_note,gpu_note,comment
+raw_1920_direct,,,,,
+cpu_bgr_640,,,,,
+cpu_scale_only_640,,,,,
+nvvidconv_bgrx_640,,,,,
+nvvidconv_nv12_640,,,,,
+ros_raw_1920,,,,,
+ros_bgr_640,,,,,
+rtsp_recv_1920,,,,,
+EOF
+
+
+19. 建议回传给分析的关键输出
+--------------------------
+ros2 topic echo /front_gmsl/frame_timing_json --once
+ros2 topic echo /front_gmsl_algo/frame_timing_json --once
+ros2 topic bw /front_gmsl/image_raw
+ros2 topic bw /front_gmsl_algo/image_raw
+gst-launch-1.0 -v \
+  v4l2src device=/dev/video4 ! \
+  video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! \
+  videoscale ! videoconvert ! \
+  video/x-raw,format=BGR,width=640,height=640 ! \
+  fakesink
+gst-launch-1.0 -v \
+  v4l2src device=/dev/video4 ! \
+  video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! \
+  nvvidconv ! \
+  video/x-raw,format=BGRx,width=640,height=640 ! \
+  videoconvert ! video/x-raw,format=BGR ! \
+  fakesink
+
+
+20. 自动采集脚本：jetson_collect_benchmarks.sh
+-----------------------------------------------
+cd /home/cczh/USV_ROS
+mkdir -p /home/cczh/USV_ROS/test_logs/benchmarks
+chmod +x /home/cczh/USV_ROS/src/usv_perception/usv_vision/scripts/jetson_collect_benchmarks.sh
+
+
+21. 查看脚本帮助
+----------------
+bash src/usv_perception/usv_vision/scripts/jetson_collect_benchmarks.sh --help
+
+
+22. 自动采集：底层原始 1920x1536 直出 fps
+-----------------------------------------
+bash src/usv_perception/usv_vision/scripts/jetson_collect_benchmarks.sh \
+  --case-name raw_1920_direct_front \
+  --mode gst \
+  --gst-cmd "gst-launch-1.0 -ev v4l2src device=/dev/video4 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! fpsdisplaysink text-overlay=1 video-sink=fakesink sync=0" \
+  --duration 20 \
+  --device-or-topic /dev/video4 \
+  --pipeline-type raw_direct \
+  --target-resolution 1920x1536 \
+  --results-dir /home/cczh/USV_ROS/test_logs/benchmarks \
+  --notes "front camera raw direct baseline"
+
+
+23. 自动采集：CPU 低分辨率 BGR 管线
+-----------------------------------
+bash src/usv_perception/usv_vision/scripts/jetson_collect_benchmarks.sh \
+  --case-name cpu_bgr_640_front \
+  --mode gst \
+  --gst-cmd "gst-launch-1.0 -ev v4l2src device=/dev/video4 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! videoscale ! videoconvert ! video/x-raw,format=BGR,width=640,height=640 ! fpsdisplaysink text-overlay=1 video-sink=fakesink sync=0" \
+  --duration 20 \
+  --device-or-topic /dev/video4 \
+  --pipeline-type cpu_bgr \
+  --target-resolution 640x640 \
+  --results-dir /home/cczh/USV_ROS/test_logs/benchmarks \
+  --notes "front camera cpu videoscale videoconvert bgr"
+
+
+24. 自动采集：CPU 只缩放不转 BGR
+--------------------------------
+bash src/usv_perception/usv_vision/scripts/jetson_collect_benchmarks.sh \
+  --case-name cpu_scale_only_640_front \
+  --mode gst \
+  --gst-cmd "gst-launch-1.0 -ev v4l2src device=/dev/video4 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! videoscale ! video/x-raw,width=640,height=640 ! fpsdisplaysink text-overlay=1 video-sink=fakesink sync=0" \
+  --duration 20 \
+  --device-or-topic /dev/video4 \
+  --pipeline-type cpu_scale_only \
+  --target-resolution 640x640 \
+  --results-dir /home/cczh/USV_ROS/test_logs/benchmarks \
+  --notes "front camera cpu scale only"
+
+
+25. 自动采集：nvvidconv 640x640 BGRx
+-----------------------------------
+bash src/usv_perception/usv_vision/scripts/jetson_collect_benchmarks.sh \
+  --case-name nvvidconv_bgrx_640_front \
+  --mode gst \
+  --gst-cmd "gst-launch-1.0 -ev v4l2src device=/dev/video4 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! fpsdisplaysink text-overlay=1 video-sink=fakesink sync=0" \
+  --duration 20 \
+  --device-or-topic /dev/video4 \
+  --pipeline-type nvvidconv_bgrx \
+  --target-resolution 640x640 \
+  --results-dir /home/cczh/USV_ROS/test_logs/benchmarks \
+  --notes "front camera nvvidconv bgrx then bgr"
+
+
+26. 自动采集：nvvidconv 640x640 NV12
+-----------------------------------
+bash src/usv_perception/usv_vision/scripts/jetson_collect_benchmarks.sh \
+  --case-name nvvidconv_nv12_640_front \
+  --mode gst \
+  --gst-cmd "gst-launch-1.0 -ev v4l2src device=/dev/video4 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=NV12,width=640,height=640 ! fpsdisplaysink text-overlay=1 video-sink=fakesink sync=0" \
+  --duration 20 \
+  --device-or-topic /dev/video4 \
+  --pipeline-type nvvidconv_nv12 \
+  --target-resolution 640x640 \
+  --results-dir /home/cczh/USV_ROS/test_logs/benchmarks \
+  --notes "front camera nvvidconv nv12"
+
+
+27. 自动采集：ROS 高分辨率链
+----------------------------
+bash src/usv_perception/usv_vision/scripts/jetson_collect_benchmarks.sh \
+  --case-name ros_raw_1920_front \
+  --mode ros \
+  --launch-cmd "cd /home/cczh/USV_ROS && source /opt/ros/humble/setup.bash && source install/setup.bash && ros2 launch usv_vision usv_vision.launch.py namespace:=front_gmsl gmsl_config:=/home/cczh/USV_ROS/src/usv_perception/usv_vision/config/gmsl_camera.yaml" \
+  --topic /front_gmsl/image_raw \
+  --duration 20 \
+  --startup-wait 6 \
+  --pipeline-type ros_bgr \
+  --target-resolution 1920x1536 \
+  --results-dir /home/cczh/USV_ROS/test_logs/benchmarks \
+  --notes "front camera ros high resolution"
+
+
+28. 自动采集：ROS 低分辨率算法链
+--------------------------------
+bash src/usv_perception/usv_vision/scripts/jetson_collect_benchmarks.sh \
+  --case-name ros_bgr_640_front \
+  --mode ros \
+  --launch-cmd "cd /home/cczh/USV_ROS && source /opt/ros/humble/setup.bash && source install/setup.bash && ros2 launch usv_vision usv_vision.launch.py namespace:=front_gmsl_algo gmsl_config:=/home/cczh/USV_ROS/src/usv_perception/usv_vision/config/gmsl_camera_algo_640.yaml" \
+  --topic /front_gmsl_algo/image_raw \
+  --duration 20 \
+  --startup-wait 6 \
+  --pipeline-type ros_bgr \
+  --target-resolution 640x640 \
+  --results-dir /home/cczh/USV_ROS/test_logs/benchmarks \
+  --notes "front camera ros low resolution"
+
+
+29. 自动采集：后路 RTSP 接收链
+------------------------------
+bash src/usv_perception/usv_vision/scripts/jetson_collect_benchmarks.sh \
+  --case-name rtsp_recv_1920_rear \
+  --mode rtsp \
+  --gst-cmd "gst-launch-1.0 -v rtspsrc location=rtsp://10.42.0.81:8554/cam1 latency=200 protocols=tcp ! rtph264depay ! h264parse ! avdec_h264 ! fpsdisplaysink text-overlay=1 video-sink=fakesink sync=0" \
+  --duration 20 \
+  --device-or-topic rtsp://10.42.0.81:8554/cam1 \
+  --pipeline-type rtsp_recv \
+  --target-resolution 1920x1536 \
+  --results-dir /home/cczh/USV_ROS/test_logs/benchmarks \
+  --notes "rear camera rtsp receive path"
+
+
+30. 查看自动采集输出目录
+------------------------
+ls -lah /home/cczh/USV_ROS/test_logs/benchmarks
+
+
+31. 查看汇总 CSV
+---------------
+cat /home/cczh/USV_ROS/test_logs/benchmarks/benchmark_results.csv
+
+
+32. 查看某个 case 的 JSON 汇总
+-----------------------------
+cat /home/cczh/USV_ROS/test_logs/benchmarks/ros_bgr_640_front_summary.json

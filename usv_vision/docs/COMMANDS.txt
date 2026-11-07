@@ -1,0 +1,166 @@
+# ============================================================
+# Jetson GMSL 视觉部署 - 命令速查
+# ============================================================
+
+## 环境
+cd /media/nvidia/SSD/usv_ws
+source /opt/ros/humble/setup.bash
+source install/setup.bash
+
+
+# ════════════════════════════════════════════════════════════
+# 一、一键全链路启动
+# ════════════════════════════════════════════════════════════
+
+# 双路（前后摄，默认）
+ros2 launch usv_vision jetson_gmsl_full.launch.py
+
+# 单路
+ros2 launch usv_vision jetson_gmsl_full.launch.py cameras:="['front']"
+
+# 三路
+ros2 launch usv_vision jetson_gmsl_full.launch.py cameras:="['front','rear','side']"
+
+
+# ════════════════════════════════════════════════════════════
+# 二、分步启动（调试/验证用）
+# ════════════════════════════════════════════════════════════
+
+# ---- 仅采集 ----
+ros2 launch usv_vision jetson_gmsl_full.launch.py \
+    cameras:="['front']" inference:=false streaming:=false
+
+# ---- 采集 + 推理 ----
+ros2 launch usv_vision jetson_gmsl_full.launch.py \
+    cameras:="['front']" streaming:=false
+
+# ---- 采集 + 推流 ----
+# 需先启动 mediamtx:  ./mediamtx &
+ros2 launch usv_vision jetson_gmsl_full.launch.py \
+    cameras:="['front']" inference:=false streaming:=true
+
+# ---- 仅推流（单节点，接已有 image_raw ；或从 ROS 话题转 RTSP，需要采集已在跑）----
+ros2 run usv_vision rtsp_stream_node --ros-args \
+    -p sensor_name:=front \
+    -p rtsp_url:=rtsp://127.0.0.1:8554/cam1
+
+
+# ════════════════════════════════════════════════════════════
+# 三、仅推理（不启动相机，接外部/仿真图像、或者需要采集已经在跑）
+# ════════════════════════════════════════════════════════════
+
+# 单路推理（订阅 /sensors/camera/front/image_raw）
+ros2 run usv_vision yolo_infer_node --ros-args \
+    -p sensor_name:=front \
+    -p engine_path:=models/yolo11n_fp16_640.engine
+
+# 多路推理（每个相机起一个）
+ros2 run usv_vision yolo_infer_node --ros-args \
+    -p sensor_name:=front \
+    -p engine_path:=models/yolo_front_fp16_640.engine &
+ros2 run usv_vision yolo_infer_node --ros-args \
+    -p sensor_name:=rear \
+    -p engine_path:=models/yolo_rear_fp16_640.engine &
+
+# 仿真场景：话题名不同时指定 image_topic
+ros2 run usv_vision yolo_infer_node --ros-args \
+    -p sensor_name:=sim_front \
+    -p image_topic:=/sim/camera/front/image_raw \
+    -p camera_info_topic:=/sim/camera/front/camera_info \
+    -p engine_path:=models/yolo11n_fp16_640.engine
+
+
+# ════════════════════════════════════════════════════════════
+# 三、参数选项
+# ════════════════════════════════════════════════════════════
+
+# cameras      相机列表: ['front'], ['rear'], ['front', 'rear']
+# inference    是否启动 TensorRT YOLO: true / false
+# streaming    是否启动 RTSP H.264 推流: true / false
+# rtsp_front   前摄 RTSP 地址 (默认 rtsp://127.0.0.1:8554/cam1)
+# rtsp_rear    后摄 RTSP 地址 (默认 rtsp://127.0.0.1:8554/cam2)
+
+# 例：双路仅采集，不推理不推流
+ros2 launch usv_vision jetson_gmsl_full.launch.py \
+    cameras:="['front','rear']" inference:=false streaming:=false
+
+# 例：自定义 RTSP 地址（地面站 IP）
+ros2 launch usv_vision jetson_gmsl_full.launch.py \
+    rtsp_front:=rtsp://10.42.0.100:8554/cam1
+
+
+# ════════════════════════════════════════════════════════════
+# 四、GMSL 驱动单独启动
+# ════════════════════════════════════════════════════════════
+
+# 单相机
+ros2 run usv_vision_gmsl_cpp gmsl_camera_node_cpp --ros-args \
+    -p sensor_name:=front \
+    -p device_path:=/dev/video0
+
+# 或通过 launch（读配置文件）
+ros2 launch usv_vision_gmsl_cpp gmsl_camera_cpp.launch.py \
+    config:=/path/to/gmsl_camera_cpp_front.yaml
+
+# 双相机
+ros2 launch usv_vision_gmsl_cpp dual_gmsl_cpp.launch.py
+
+
+# ════════════════════════════════════════════════════════════
+# 五、模型导出
+# ════════════════════════════════════════════════════════════
+
+python3 scripts/export_engine_jetson.py --model /path/to/best.pt --imgsz 640
+# 输出: models/<name>_fp16_640.engine
+
+
+# ════════════════════════════════════════════════════════════
+# 六、监控 & 调试
+# ════════════════════════════════════════════════════════════
+
+# 话题列表
+ros2 topic list | grep -E "camera|vision|detections"
+
+# 采集帧率
+ros2 topic hz /sensors/camera/front/image_raw
+
+# 推理帧率
+ros2 topic hz /perception/camera/front/objects
+
+# 查看一次检测结果
+ros2 topic echo /perception/camera/front/objects --once
+
+# 系统资源
+tegrastats --interval 2000
+
+# 性能基准（全自动四轮测试）
+bash benchmark.sh
+
+# GMSL 健康检查
+bash scripts/health_check.sh
+
+# 查看 RTSP 流
+ffplay rtsp://127.0.0.1:8554/cam1
+# 或
+gst-play-1.0 rtsp://127.0.0.1:8554/cam1
+
+
+# ════════════════════════════════════════════════════════════
+# 七、常见问题
+# ════════════════════════════════════════════════════════════
+
+# Q: /dev/video0 被占用
+fuser -k /dev/video0
+
+# Q: 清理所有视觉节点
+pkill -f gmsl_camera; pkill -f yolo_infer; pkill -f rtsp_stream
+
+# Q: 重编
+colcon build --packages-select usv_vision_gmsl_cpp usv_vision --symlink-install
+source install/setup.bash
+
+# Q: 添加新相机（例如第四路 "left"）
+# 1. 创建配置: cp config/gmsl_camera_template.yaml config/gmsl_camera_cpp_left.yaml
+# 2. 修改 device_path 为实际 /dev/videoX
+# 3. 启动: cameras:="['front','rear','side','left']"
+

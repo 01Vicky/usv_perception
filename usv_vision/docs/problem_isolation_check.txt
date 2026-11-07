@@ -1,0 +1,1221 @@
+cczh@ubuntu:~/USV_ROS$ cd /home/cczh/USV_ROS
+source /opt/ros/humble/setup.bash
+cczh@ubuntu:~/USV_ROS$ colcon build --packages-select usv_vision
+Starting >>> usv_vision
+Finished <<< usv_vision [1.87s]          
+
+Summary: 1 package finished [2.61s]
+cczh@ubuntu:~/USV_ROS$ source install/setup.bash
+cczh@ubuntu:~/USV_ROS$ ls -lah /home/cczh/USV_ROS/src/usv_perception/usv_vision/scripts/jetson_collect_benchmarks.sh
+-rwxrwxr-x 1 cczh cczh 13K  5月 15 14:49 /home/cczh/USV_ROS/src/usv_perception/usv_vision/scripts/jetson_collect_benchmarks.sh
+cczh@ubuntu:~/USV_ROS$ bash /home/cczh/USV_ROS/src/usv_perception/usv_vision/scripts/jetson_collect_benchmarks.sh --help
+Usage:
+  jetson_collect_benchmarks.sh --case-name NAME --mode MODE [options]
+
+Modes:
+  gst   Run a gst command and parse fps from fpsdisplaysink output
+  ros   Run a ROS launch command, auto-isolate namespace, then sample ros2 topic hz/bw
+  rtsp  Run a gst/rtsp receive command and parse fps from fpsdisplaysink output
+
+Options:
+  --case-name NAME
+  --mode gst|ros|rtsp
+  --launch-cmd "ros2 launch ..."
+  --topic /topic/name
+  --gst-cmd "gst-launch-1.0 ..."
+  --duration SECONDS
+  --results-dir PATH
+  --target-resolution WxH
+  --device-or-topic VALUE
+  --pipeline-type VALUE
+  --notes TEXT
+  --startup-wait SECONDS
+  --namespace VALUE
+  --help
+cczh@ubuntu:~/USV_ROS$ rm -rf /home/cczh/USV_ROS/test_logs/benchmarks_namespace_check
+cczh@ubuntu:~/USV_ROS$ mkdir -p /home/cczh/USV_ROS/test_logs/benchmarks_namespace_check
+cczh@ubuntu:~/USV_ROS$ bash src/usv_perception/usv_vision/scripts/jetson_collect_benchmarks.sh \
+  --case-name nscheck_nvvidconv \
+  --mode ros \
+  --launch-cmd "cd /home/cczh/USV_ROS && source /opt/ros/humble/setup.bash && source install/setup.bash && ros2 launch usv_vision usv_vision.launch.py namespace:=front_gmsl_algo gmsl_config:=/home/cczh/USV_ROS/src/usv_perception/usv_vision/config/gmsl_camera_algo_640.yaml" \
+  --topic /front_gmsl_algo/image_raw \
+  --duration 20 \
+  --startup-wait 6 \
+  --pipeline-type ros_bgr_nvvidconv \
+  --target-resolution 640x640 \
+  --results-dir /home/cczh/USV_ROS/test_logs/benchmarks_namespace_check \
+  --notes "namespace isolation check nvvidconv"
+{
+  "case_name": "nscheck_nvvidconv",
+  "mode": "ros",
+  "device_or_topic": "/bench_nscheck_nvvidconv/image_raw",
+  "pipeline_type": "ros_bgr_nvvidconv",
+  "target_resolution": "640x640",
+  "observed_resolution": "NA",
+  "fps_mean": "NA",
+  "fps_min": "NA",
+  "fps_max": "NA",
+  "msg_size_mb": "NA",
+  "bandwidth_mb_s": "NA",
+  "cpu_percent_avg": "NA",
+  "gpu_percent_avg": "4.368",
+  "temp_c_avg": "NA",
+  "notes": "namespace isolation check nvvidconv; namespace=bench_nscheck_nvvidconv"
+}
+cczh@ubuntu:~/USV_ROS$ cat /home/cczh/USV_ROS/test_logs/benchmarks_namespace_check/nscheck_nvvidconv_topic_info.log
+cat /home/cczh/USV_ROS/test_logs/benchmarks_namespace_check/nscheck_nvvidconv_summary.json
+Type: sensor_msgs/msg/Image
+
+Publisher count: 1
+
+Node name: gmsl_camera_node
+Node namespace: /bench_nscheck_nvvidconv
+Topic type: sensor_msgs/msg/Image
+Endpoint type: PUBLISHER
+GID: 01.0f.c1.4f.b5.c3.7a.b0.00.00.00.00.00.00.11.03.00.00.00.00.00.00.00.00
+QoS profile:
+  Reliability: BEST_EFFORT
+  History (Depth): UNKNOWN
+  Durability: VOLATILE
+  Lifespan: Infinite
+  Deadline: Infinite
+  Liveliness: AUTOMATIC
+  Liveliness lease duration: Infinite
+
+Subscription count: 0
+
+{
+  "case_name": "nscheck_nvvidconv",
+  "mode": "ros",
+  "device_or_topic": "/bench_nscheck_nvvidconv/image_raw",
+  "pipeline_type": "ros_bgr_nvvidconv",
+  "target_resolution": "640x640",
+  "observed_resolution": "NA",
+  "fps_mean": "NA",
+  "fps_min": "NA",
+  "fps_max": "NA",
+  "msg_size_mb": "NA",
+  "bandwidth_mb_s": "NA",
+  "cpu_percent_avg": "NA",
+  "gpu_percent_avg": "4.368",
+  "temp_c_avg": "NA",
+  "notes": "namespace isolation check nvvidconv; namespace=bench_nscheck_nvvidconv"
+}
+cczh@ubuntu:~/USV_ROS$ cd /home/cczh/USV_ROS
+bash src/usv_perception/usv_vision/scripts/jetson_collect_benchmarks.sh \
+  --case-name nscheck_cpu_backup \
+  --mode ros \
+  --launch-cmd "cd /home/cczh/USV_ROS && source /opt/ros/humble/setup.bash && source install/setup.bash && ros2 launch usv_vision usv_vision.launch.py namespace:=front_gmsl_algo gmsl_config:=/home/cczh/USV_ROS/src/usv_perception/usv_vision/config/gmsl_camera_algo_640_cpu_backup.yaml" \
+  --topic /front_gmsl_algo/image_raw \
+  --duration 20 \
+  --startup-wait 6 \
+  --pipeline-type ros_bgr_cpu_backup \
+  --target-resolution 640x640 \
+  --results-dir /home/cczh/USV_ROS/test_logs/benchmarks_namespace_check \
+  --notes "namespace isolation check cpu backup"
+
+{
+  "case_name": "nscheck_cpu_backup",
+  "mode": "ros",
+  "device_or_topic": "/bench_nscheck_cpu_backup/image_raw",
+  "pipeline_type": "ros_bgr_cpu_backup",
+  "target_resolution": "640x640",
+  "observed_resolution": "NA",
+  "fps_mean": "NA",
+  "fps_min": "NA",
+  "fps_max": "NA",
+  "msg_size_mb": "NA",
+  "bandwidth_mb_s": "NA",
+  "cpu_percent_avg": "NA",
+  "gpu_percent_avg": "9.263",
+  "temp_c_avg": "NA",
+  "notes": "namespace isolation check cpu backup; namespace=bench_nscheck_cpu_backup"
+}
+cczh@ubuntu:~/USV_ROS$ cat /home/cczh/USV_ROS/test_logs/benchmarks_namespace_check/nscheck_cpu_backup_topic_info.log
+cat /home/cczh/USV_ROS/test_logs/benchmarks_namespace_check/nscheck_cpu_backup_summary.json
+Type: sensor_msgs/msg/Image
+
+Publisher count: 1
+
+Node name: gmsl_camera_node
+Node namespace: /bench_nscheck_cpu_backup
+Topic type: sensor_msgs/msg/Image
+Endpoint type: PUBLISHER
+GID: 01.0f.c1.4f.30.c7.a4.ad.00.00.00.00.00.00.11.03.00.00.00.00.00.00.00.00
+QoS profile:
+  Reliability: BEST_EFFORT
+  History (Depth): UNKNOWN
+  Durability: VOLATILE
+  Lifespan: Infinite
+  Deadline: Infinite
+  Liveliness: AUTOMATIC
+  Liveliness lease duration: Infinite
+
+Subscription count: 0
+
+{
+  "case_name": "nscheck_cpu_backup",
+  "mode": "ros",
+  "device_or_topic": "/bench_nscheck_cpu_backup/image_raw",
+  "pipeline_type": "ros_bgr_cpu_backup",
+  "target_resolution": "640x640",
+  "observed_resolution": "NA",
+  "fps_mean": "NA",
+  "fps_min": "NA",
+  "fps_max": "NA",
+  "msg_size_mb": "NA",
+  "bandwidth_mb_s": "NA",
+  "cpu_percent_avg": "NA",
+  "gpu_percent_avg": "9.263",
+  "temp_c_avg": "NA",
+  "notes": "namespace isolation check cpu backup; namespace=bench_nscheck_cpu_backup"
+}
+cczh@ubuntu:~/USV_ROS$ ros2 node list
+ros2 topic list | rg nscheck
+ros2 topic info /bench_nscheck_nvvidconv/image_raw -v
+ros2 topic info /bench_nscheck_cpu_backup/image_raw -v
+WARNING: Be aware that there are nodes in the graph that share an exact name, which can have unintended side effects.
+/bench_nscheck_cpu_backup/gmsl_camera_node
+/bench_nscheck_nvvidconv/gmsl_camera_node
+/front_gmsl_algo/gmsl_camera_node
+/front_gmsl_algo/gmsl_camera_node
+bash: rg: 未找到命令
+Traceback (most recent call last):
+  File "/opt/ros/humble/bin/ros2", line 33, in <module>
+    sys.exit(load_entry_point('ros2cli==0.18.18', 'console_scripts', 'ros2')())
+  File "/opt/ros/humble/lib/python3.10/site-packages/ros2cli/cli.py", line 91, in main
+    rc = extension.main(parser=parser, args=args)
+  File "/opt/ros/humble/lib/python3.10/site-packages/ros2topic/command/topic.py", line 41, in main
+    return extension.main(args=args)
+  File "/opt/ros/humble/lib/python3.10/site-packages/ros2topic/verb/list.py", line 79, in main
+    print(msg.format_map(locals()))
+BrokenPipeError: [Errno 32] Broken pipe
+Exception ignored in: <_io.TextIOWrapper name='<stdout>' mode='w' encoding='utf-8'>
+BrokenPipeError: [Errno 32] Broken pipe
+Type: sensor_msgs/msg/Image
+
+Publisher count: 1
+
+Node name: gmsl_camera_node
+Node namespace: /bench_nscheck_nvvidconv
+Topic type: sensor_msgs/msg/Image
+Endpoint type: PUBLISHER
+GID: 01.0f.c1.4f.b5.c3.7a.b0.00.00.00.00.00.00.11.03.00.00.00.00.00.00.00.00
+QoS profile:
+  Reliability: BEST_EFFORT
+  History (Depth): UNKNOWN
+  Durability: VOLATILE
+  Lifespan: Infinite
+  Deadline: Infinite
+  Liveliness: AUTOMATIC
+  Liveliness lease duration: Infinite
+
+Subscription count: 0
+
+Type: sensor_msgs/msg/Image
+
+Publisher count: 1
+
+Node name: gmsl_camera_node
+Node namespace: /bench_nscheck_cpu_backup
+Topic type: sensor_msgs/msg/Image
+Endpoint type: PUBLISHER
+GID: 01.0f.c1.4f.30.c7.a4.ad.00.00.00.00.00.00.11.03.00.00.00.00.00.00.00.00
+QoS profile:
+  Reliability: BEST_EFFORT
+  History (Depth): UNKNOWN
+  Durability: VOLATILE
+  Lifespan: Infinite
+  Deadline: Infinite
+  Liveliness: AUTOMATIC
+  Liveliness lease duration: Infinite
+
+Subscription count: 0
+
+cczh@ubuntu:~/USV_ROS$ ros2 launch usv_vision usv_vision.launch.py   namespace:=front_gmsl_algo   gmsl_config:=/home/cczh/USV_ROS/src/usv_perception/usv_vision/config/gmsl_camera_algo_640.yaml
+[INFO] [launch]: All log files can be found below /home/cczh/.ros/log/2026-05-15-15-09-50-777083-ubuntu-117838
+[INFO] [launch]: Default logging verbosity is set to INFO
+[INFO] [gmsl_camera_node-1]: process started with pid [117847]
+[gmsl_camera_node-1] [INFO] [1778828992.142502260] [front_gmsl_algo.gmsl_camera_node]: gmsl_camera_node started: camera=front_gmsl_algo, device=/dev/video5
+[gmsl_camera_node-1] [INFO] [1778828992.143439762] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src0 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778828992.734745351] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src1 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778828993.244366355] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src2 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778828993.756427276] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src3 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778828994.267129882] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src4 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778828994.779100336] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src5 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778828995.291013508] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] 
+[gmsl_camera_node-1] (python3:117847): GStreamer-CRITICAL **: 15:09:55.304: 
+[gmsl_camera_node-1] Trying to dispose element capsfilter20, but it is in PLAYING instead of the NULL state.
+[gmsl_camera_node-1] You need to explicitly set elements to the NULL state before
+[gmsl_camera_node-1] dropping the final reference, to allow them to clean up.
+[gmsl_camera_node-1] This problem may also be caused by a refcounting bug in the
+[gmsl_camera_node-1] application or some element.
+[gmsl_camera_node-1] 
+[gmsl_camera_node-1] 
+[gmsl_camera_node-1] (python3:117847): GStreamer-CRITICAL **: 15:09:55.304: 
+[gmsl_camera_node-1] Trying to dispose element capsfilter19, but it is in PLAYING instead of the NULL state.
+[gmsl_camera_node-1] You need to explicitly set elements to the NULL state before
+[gmsl_camera_node-1] dropping the final reference, to allow them to clean up.
+[gmsl_camera_node-1] This problem may also be caused by a refcounting bug in the
+[gmsl_camera_node-1] application or some element.
+[gmsl_camera_node-1] 
+[gmsl_camera_node-1] 
+[gmsl_camera_node-1] (python3:117847): GStreamer-CRITICAL **: 15:09:55.304: 
+[gmsl_camera_node-1] Trying to dispose element capsfilter18, but it is in PLAYING instead of the NULL state.
+[gmsl_camera_node-1] You need to explicitly set elements to the NULL state before
+[gmsl_camera_node-1] dropping the final reference, to allow them to clean up.
+[gmsl_camera_node-1] This problem may also be caused by a refcounting bug in the
+[gmsl_camera_node-1] application or some element.
+[gmsl_camera_node-1] 
+[gmsl_camera_node-1] 
+[gmsl_camera_node-1] (python3:117847): GStreamer-CRITICAL **: 15:09:55.304: 
+[gmsl_camera_node-1] Trying to dispose element nvvconv6, but it is in PLAYING instead of the NULL state.
+[gmsl_camera_node-1] You need to explicitly set elements to the NULL state before
+[gmsl_camera_node-1] dropping the final reference, to allow them to clean up.
+[gmsl_camera_node-1] This problem may also be caused by a refcounting bug in the
+[gmsl_camera_node-1] application or some element.
+[gmsl_camera_node-1] 
+[gmsl_camera_node-1] 
+[gmsl_camera_node-1] (python3:117847): GStreamer-CRITICAL **: 15:09:55.304: 
+[gmsl_camera_node-1] Trying to dispose element pipeline6, but it is in PAUSED instead of the NULL state.
+[gmsl_camera_node-1] You need to explicitly set elements to the NULL state before
+[gmsl_camera_node-1] dropping the final reference, to allow them to clean up.
+[gmsl_camera_node-1] This problem may also be caused by a refcounting bug in the
+[gmsl_camera_node-1] application or some element.
+[gmsl_camera_node-1] 
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] 
+[gmsl_camera_node-1] (python3:117847): GStreamer-CRITICAL **: 15:09:55.304: 
+[gmsl_camera_node-1] Trying to dispose element videoconvert6, but it is in PLAYING instead of the NULL state.
+[gmsl_camera_node-1] You need to explicitly set elements to the NULL state before
+[gmsl_camera_node-1] dropping the final reference, to allow them to clean up.
+[gmsl_camera_node-1] This problem may also be caused by a refcounting bug in the
+[gmsl_camera_node-1] application or some element.
+[gmsl_camera_node-1] 
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] 
+[gmsl_camera_node-1] (python3:117847): GStreamer-CRITICAL **: 15:09:55.304: 
+[gmsl_camera_node-1] Trying to dispose element appsink6, but it is in READY instead of the NULL state.
+[gmsl_camera_node-1] You need to explicitly set elements to the NULL state before
+[gmsl_camera_node-1] dropping the final reference, to allow them to clean up.
+[gmsl_camera_node-1] This problem may also be caused by a refcounting bug in the
+[gmsl_camera_node-1] application or some element.
+[gmsl_camera_node-1] 
+[gmsl_camera_node-1] 
+[gmsl_camera_node-1] (python3:117847): GStreamer-CRITICAL **: 15:09:55.305: gst_element_post_message: assertion 'GST_IS_ELEMENT (element)' failed
+[gmsl_camera_node-1] [INFO] [1778828995.807354214] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src7 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778828996.321324092] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src8 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778828996.832292498] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src9 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778828997.345824763] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src10 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778828997.860102299] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src11 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778828998.372680933] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src12 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778828998.882075113] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src13 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] 
+[gmsl_camera_node-1] (python3:117847): GStreamer-CRITICAL **: 15:09:58.888: gst_caps_get_structure: assertion 'GST_IS_CAPS (caps)' failed
+[gmsl_camera_node-1] 
+[gmsl_camera_node-1] (python3:117847): GStreamer-CRITICAL **: 15:09:58.888: gst_structure_get_int: assertion 'structure != NULL' failed
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1079) open OpenCV | GStreamer warning: cannot query video width/height
+[gmsl_camera_node-1] 
+[gmsl_camera_node-1] (python3:117847): GStreamer-CRITICAL **: 15:09:58.888: gst_structure_get_fraction: assertion 'structure != NULL' failed
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1085) open OpenCV | GStreamer warning: cannot query video fps
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1100) open OpenCV | GStreamer warning: Cannot query video position: status=0, value=-1, duration=-1
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src13 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (651) startPipeline OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778828999.394916636] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src14 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778828999.905970901] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src15 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778829000.417765894] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src16 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778829000.930874177] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src17 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778829001.443995101] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src18 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778829001.956173658] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src19 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778829002.470142481] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src20 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778829002.983101447] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src21 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778829003.497419849] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src22 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778829004.011098999] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src23 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778829004.527152336] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src24 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778829005.041160104] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src25 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778829005.552929817] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src26 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778829006.065043988] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src27 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778829006.577719778] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src28 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778829007.090246731] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src29 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778829007.601740787] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src30 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778829008.112422626] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src31 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778829008.623253749] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src32 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778829009.136041382] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src33 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778829009.649848857] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src34 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778829010.163186396] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src35 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778829010.676915787] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src36 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778829011.191478614] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src37 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778829011.705070049] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src38 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778829012.220157340] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src39 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778829012.731132116] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src40 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778829013.243282258] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src41 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778829013.754201192] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src42 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778829014.265390887] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src43 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778829014.777690762] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src44 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778829015.292230228] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src45 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778829015.805528342] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src46 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778829016.316207557] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src47 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778829016.826626572] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src48 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778829017.338307227] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src49 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778829017.848743362] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src50 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778829018.358977635] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src51 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778829018.867973468] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src52 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778829019.379181245] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src53 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778829019.891547042] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src54 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778829020.401254578] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src55 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778829020.914257067] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src56 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778829021.425210307] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src57 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778829021.935583049] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src58 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778829022.449047697] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src59 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778829022.961412375] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src60 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778829023.474247563] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src61 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778829023.984496077] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src62 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778829024.496725198] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src63 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778829025.009422334] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src64 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778829025.520988202] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src65 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778829026.033874656] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src66 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778829026.544809784] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src67 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778829027.062706542] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src68 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778829027.578063699] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src69 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778829028.095514650] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src70 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778829028.607520341] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src71 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778829029.120509486] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src72 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778829029.632303138] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src73 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778829030.144616422] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src74 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778829030.656845000] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src75 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778829031.170354066] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src76 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778829031.682291178] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src77 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778829032.194185889] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src78 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778829032.707422691] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src79 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778829033.219224727] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src80 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778829033.729660064] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src81 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778829034.241332048] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src82 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778829034.751559218] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src83 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778829035.262532044] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src84 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778829035.774739853] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src85 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778829036.284572867] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src86 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778829036.795004684] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src87 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778829037.308932036] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src88 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778829037.821663542] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src89 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778829038.332124256] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] 
+[gmsl_camera_node-1] (python3:117847): GStreamer-CRITICAL **: 15:10:38.339: 
+[gmsl_camera_node-1] Trying to dispose element capsfilter272, but it is in PLAYING instead of the NULL state.
+[gmsl_camera_node-1] You need to explicitly set elements to the NULL state before
+[gmsl_camera_node-1] dropping the final reference, to allow them to clean up.
+[gmsl_camera_node-1] This problem may also be caused by a refcounting bug in the
+[gmsl_camera_node-1] application or some element.
+[gmsl_camera_node-1] 
+[gmsl_camera_node-1] 
+[gmsl_camera_node-1] (python3:117847): GStreamer-CRITICAL **: 15:10:38.339: 
+[gmsl_camera_node-1] Trying to dispose element capsfilter271, but it is in PLAYING instead of the NULL state.
+[gmsl_camera_node-1] You need to explicitly set elements to the NULL state before
+[gmsl_camera_node-1] dropping the final reference, to allow them to clean up.
+[gmsl_camera_node-1] This problem may also be caused by a refcounting bug in the
+[gmsl_camera_node-1] application or some element.
+[gmsl_camera_node-1] 
+[gmsl_camera_node-1] 
+[gmsl_camera_node-1] (python3:117847): GStreamer-CRITICAL **: 15:10:38.339: 
+[gmsl_camera_node-1] Trying to dispose element capsfilter270, but it is in PLAYING instead of the NULL state.
+[gmsl_camera_node-1] You need to explicitly set elements to the NULL state before
+[gmsl_camera_node-1] dropping the final reference, to allow them to clean up.
+[gmsl_camera_node-1] This problem may also be caused by a refcounting bug in the
+[gmsl_camera_node-1] application or some element.
+[gmsl_camera_node-1] 
+[gmsl_camera_node-1] 
+[gmsl_camera_node-1] (python3:117847): GStreamer-CRITICAL **: 15:10:38.339: 
+[gmsl_camera_node-1] Trying to dispose element nvvconv90, but it is in PLAYING instead of the NULL state.
+[gmsl_camera_node-1] You need to explicitly set elements to the NULL state before
+[gmsl_camera_node-1] dropping the final reference, to allow them to clean up.
+[gmsl_camera_node-1] This problem may also be caused by a refcounting bug in the
+[gmsl_camera_node-1] application or some element.
+[gmsl_camera_node-1] 
+[gmsl_camera_node-1] 
+[gmsl_camera_node-1] (python3:117847): GStreamer-CRITICAL **: 15:10:38.339: 
+[gmsl_camera_node-1] Trying to dispose element pipeline90, but it is in PAUSED instead of the NULL state.
+[gmsl_camera_node-1] You need to explicitly set elements to the NULL state before
+[gmsl_camera_node-1] dropping the final reference, to allow them to clean up.
+[gmsl_camera_node-1] This problem may also be caused by a refcounting bug in the
+[gmsl_camera_node-1] application or some element.
+[gmsl_camera_node-1] 
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] 
+[gmsl_camera_node-1] (python3:117847): GStreamer-CRITICAL **: 15:10:38.339: 
+[gmsl_camera_node-1] Trying to dispose element videoconvert90, but it is in PLAYING instead of the NULL state.
+[gmsl_camera_node-1] You need to explicitly set elements to the NULL state before
+[gmsl_camera_node-1] dropping the final reference, to allow them to clean up.
+[gmsl_camera_node-1] This problem may also be caused by a refcounting bug in the
+[gmsl_camera_node-1] application or some element.
+[gmsl_camera_node-1] 
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] 
+[gmsl_camera_node-1] (python3:117847): GStreamer-CRITICAL **: 15:10:38.339: 
+[gmsl_camera_node-1] Trying to dispose element appsink90, but it is in READY instead of the NULL state.
+[gmsl_camera_node-1] You need to explicitly set elements to the NULL state before
+[gmsl_camera_node-1] dropping the final reference, to allow them to clean up.
+[gmsl_camera_node-1] This problem may also be caused by a refcounting bug in the
+[gmsl_camera_node-1] application or some element.
+[gmsl_camera_node-1] 
+[gmsl_camera_node-1] 
+[gmsl_camera_node-1] (python3:117847): GStreamer-CRITICAL **: 15:10:38.351: gst_element_post_message: assertion 'GST_IS_ELEMENT (element)' failed
+[gmsl_camera_node-1] [INFO] [1778829038.841482311] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src91 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778829039.352175416] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src92 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778829039.861506846] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src93 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778829040.375121965] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] 
+[gmsl_camera_node-1] (python3:117847): GStreamer-CRITICAL **: 15:10:40.384: 
+[gmsl_camera_node-1] Trying to dispose element capsfilter284, but it is in PLAYING instead of the NULL state.
+[gmsl_camera_node-1] You need to explicitly set elements to the NULL state before
+[gmsl_camera_node-1] dropping the final reference, to allow them to clean up.
+[gmsl_camera_node-1] This problem may also be caused by a refcounting bug in the
+[gmsl_camera_node-1] application or some element.
+[gmsl_camera_node-1] 
+[gmsl_camera_node-1] 
+[gmsl_camera_node-1] (python3:117847): GStreamer-CRITICAL **: 15:10:40.384: 
+[gmsl_camera_node-1] Trying to dispose element capsfilter283, but it is in PLAYING instead of the NULL state.
+[gmsl_camera_node-1] You need to explicitly set elements to the NULL state before
+[gmsl_camera_node-1] dropping the final reference, to allow them to clean up.
+[gmsl_camera_node-1] This problem may also be caused by a refcounting bug in the
+[gmsl_camera_node-1] application or some element.
+[gmsl_camera_node-1] 
+[gmsl_camera_node-1] 
+[gmsl_camera_node-1] (python3:117847): GStreamer-CRITICAL **: 15:10:40.384: 
+[gmsl_camera_node-1] Trying to dispose element capsfilter282, but it is in PLAYING instead of the NULL state.
+[gmsl_camera_node-1] You need to explicitly set elements to the NULL state before
+[gmsl_camera_node-1] dropping the final reference, to allow them to clean up.
+[gmsl_camera_node-1] This problem may also be caused by a refcounting bug in the
+[gmsl_camera_node-1] application or some element.
+[gmsl_camera_node-1] 
+[gmsl_camera_node-1] 
+[gmsl_camera_node-1] (python3:117847): GStreamer-CRITICAL **: 15:10:40.384: 
+[gmsl_camera_node-1] Trying to dispose element nvvconv94, but it is in PLAYING instead of the NULL state.
+[gmsl_camera_node-1] You need to explicitly set elements to the NULL state before
+[gmsl_camera_node-1] dropping the final reference, to allow them to clean up.
+[gmsl_camera_node-1] This problem may also be caused by a refcounting bug in the
+[gmsl_camera_node-1] application or some element.
+[gmsl_camera_node-1] 
+[gmsl_camera_node-1] 
+[gmsl_camera_node-1] (python3:117847): GStreamer-CRITICAL **: 15:10:40.385: 
+[gmsl_camera_node-1] Trying to dispose element pipeline94, but it is in PAUSED instead of the NULL state.
+[gmsl_camera_node-1] You need to explicitly set elements to the NULL state before
+[gmsl_camera_node-1] dropping the final reference, to allow them to clean up.
+[gmsl_camera_node-1] This problem may also be caused by a refcounting bug in the
+[gmsl_camera_node-1] application or some element.
+[gmsl_camera_node-1] 
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] 
+[gmsl_camera_node-1] (python3:117847): GStreamer-CRITICAL **: 15:10:40.385: 
+[gmsl_camera_node-1] Trying to dispose element videoconvert94, but it is in PLAYING instead of the NULL state.
+[gmsl_camera_node-1] You need to explicitly set elements to the NULL state before
+[gmsl_camera_node-1] dropping the final reference, to allow them to clean up.
+[gmsl_camera_node-1] This problem may also be caused by a refcounting bug in the
+[gmsl_camera_node-1] application or some element.
+[gmsl_camera_node-1] 
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] 
+[gmsl_camera_node-1] (python3:117847): GStreamer-CRITICAL **: 15:10:40.385: 
+[gmsl_camera_node-1] Trying to dispose element appsink94, but it is in READY instead of the NULL state.
+[gmsl_camera_node-1] You need to explicitly set elements to the NULL state before
+[gmsl_camera_node-1] dropping the final reference, to allow them to clean up.
+[gmsl_camera_node-1] This problem may also be caused by a refcounting bug in the
+[gmsl_camera_node-1] application or some element.
+[gmsl_camera_node-1] 
+[gmsl_camera_node-1] 
+[gmsl_camera_node-1] (python3:117847): GStreamer-CRITICAL **: 15:10:40.386: gst_element_post_message: assertion 'GST_IS_ELEMENT (element)' failed
+[gmsl_camera_node-1] [INFO] [1778829040.888402673] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src95 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778829041.401277000] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src96 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778829041.912021595] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src97 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778829042.424517702] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src98 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778829042.937113748] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src99 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778829043.449426905] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src100 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778829043.964112714] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src101 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778829044.476566164] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src102 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778829044.990889210] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src103 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778829045.504404485] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src104 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778829046.015820878] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src105 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778829046.527354235] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src106 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778829047.039947465] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src107 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778829047.551412404] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src108 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778829048.062313197] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src109 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778829048.575084609] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src110 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778829049.086367206] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src111 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778829049.596908115] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src112 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778829050.108147287] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src113 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778829050.620603969] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src114 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778829051.130385238] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src115 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778829051.641705629] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src116 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778829052.153020675] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src117 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778829052.664299912] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src118 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778829053.176856854] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src119 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778829053.691283359] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src120 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778829054.203115414] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src121 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778829054.713923212] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src122 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778829055.224319189] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src123 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778829055.734761920] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src124 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778829056.246833982] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src125 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778829056.759091587] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src126 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778829057.271980540] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src127 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778829057.782154622] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src128 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778829058.292572968] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src129 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778829058.805626502] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src130 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778829059.317714790] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src131 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778829059.827933033] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src132 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778829060.335967272] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src133 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778829060.845797183] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] 
+[gmsl_camera_node-1] (python3:117847): GStreamer-CRITICAL **: 15:11:00.861: 
+[gmsl_camera_node-1] Trying to dispose element capsfilter404, but it is in PLAYING instead of the NULL state.
+[gmsl_camera_node-1] You need to explicitly set elements to the NULL state before
+[gmsl_camera_node-1] dropping the final reference, to allow them to clean up.
+[gmsl_camera_node-1] This problem may also be caused by a refcounting bug in the
+[gmsl_camera_node-1] application or some element.
+[gmsl_camera_node-1] 
+[gmsl_camera_node-1] 
+[gmsl_camera_node-1] (python3:117847): GStreamer-CRITICAL **: 15:11:00.861: 
+[gmsl_camera_node-1] Trying to dispose element capsfilter403, but it is in PLAYING instead of the NULL state.
+[gmsl_camera_node-1] You need to explicitly set elements to the NULL state before
+[gmsl_camera_node-1] dropping the final reference, to allow them to clean up.
+[gmsl_camera_node-1] This problem may also be caused by a refcounting bug in the
+[gmsl_camera_node-1] application or some element.
+[gmsl_camera_node-1] 
+[gmsl_camera_node-1] 
+[gmsl_camera_node-1] (python3:117847): GStreamer-CRITICAL **: 15:11:00.861: 
+[gmsl_camera_node-1] Trying to dispose element capsfilter402, but it is in PLAYING instead of the NULL state.
+[gmsl_camera_node-1] You need to explicitly set elements to the NULL state before
+[gmsl_camera_node-1] dropping the final reference, to allow them to clean up.
+[gmsl_camera_node-1] This problem may also be caused by a refcounting bug in the
+[gmsl_camera_node-1] application or some element.
+[gmsl_camera_node-1] 
+[gmsl_camera_node-1] 
+[gmsl_camera_node-1] (python3:117847): GStreamer-CRITICAL **: 15:11:00.861: 
+[gmsl_camera_node-1] Trying to dispose element nvvconv134, but it is in PLAYING instead of the NULL state.
+[gmsl_camera_node-1] You need to explicitly set elements to the NULL state before
+[gmsl_camera_node-1] dropping the final reference, to allow them to clean up.
+[gmsl_camera_node-1] This problem may also be caused by a refcounting bug in the
+[gmsl_camera_node-1] application or some element.
+[gmsl_camera_node-1] 
+[gmsl_camera_node-1] 
+[gmsl_camera_node-1] (python3:117847): GStreamer-CRITICAL **: 15:11:00.861: 
+[gmsl_camera_node-1] Trying to dispose element pipeline134, but it is in PAUSED instead of the NULL state.
+[gmsl_camera_node-1] You need to explicitly set elements to the NULL state before
+[gmsl_camera_node-1] dropping the final reference, to allow them to clean up.
+[gmsl_camera_node-1] This problem may also be caused by a refcounting bug in the
+[gmsl_camera_node-1] application or some element.
+[gmsl_camera_node-1] 
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] 
+[gmsl_camera_node-1] (python3:117847): GStreamer-CRITICAL **: 15:11:00.861: 
+[gmsl_camera_node-1] Trying to dispose element videoconvert134, but it is in PLAYING instead of the NULL state.
+[gmsl_camera_node-1] You need to explicitly set elements to the NULL state before
+[gmsl_camera_node-1] dropping the final reference, to allow them to clean up.
+[gmsl_camera_node-1] This problem may also be caused by a refcounting bug in the
+[gmsl_camera_node-1] application or some element.
+[gmsl_camera_node-1] 
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] 
+[gmsl_camera_node-1] (python3:117847): GStreamer-CRITICAL **: 15:11:00.861: 
+[gmsl_camera_node-1] Trying to dispose element appsink134, but it is in READY instead of the NULL state.
+[gmsl_camera_node-1] You need to explicitly set elements to the NULL state before
+[gmsl_camera_node-1] dropping the final reference, to allow them to clean up.
+[gmsl_camera_node-1] This problem may also be caused by a refcounting bug in the
+[gmsl_camera_node-1] application or some element.
+[gmsl_camera_node-1] 
+[gmsl_camera_node-1] [INFO] [1778829061.364293099] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src135 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778829061.874922876] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src136 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778829062.390992410] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src137 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778829062.907124603] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src138 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778829063.422254268] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src139 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778829063.933155317] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src140 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778829064.443753638] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src141 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778829064.957983946] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src142 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778829065.473802625] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src143 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778829065.986276429] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src144 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778829066.497914110] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src145 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778829067.008656851] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src146 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778829067.524900376] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src147 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778829068.040151261] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src148 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778829068.555892977] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src149 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778829069.070395134] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src150 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778829069.583849898] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src151 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778829070.095575583] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src152 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778829070.607753474] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src153 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778829071.121263919] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src154 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778829071.632480788] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src155 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778829072.143541139] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src156 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778829072.653732343] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src157 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778829073.164862073] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src158 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778829073.678090366] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src159 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778829074.189273250] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src160 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778829074.699382083] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src161 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778829075.210793646] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src162 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778829075.720484354] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src163 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778829076.229686599] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src164 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778829076.741653092] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src165 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778829077.255153202] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src166 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778829077.769736674] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src167 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778829078.282878244] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src168 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] 
+[gmsl_camera_node-1] (python3:117847): GStreamer-CRITICAL **: 15:11:18.291: gst_caps_get_structure: assertion 'GST_IS_CAPS (caps)' failed
+[gmsl_camera_node-1] 
+[gmsl_camera_node-1] (python3:117847): GStreamer-CRITICAL **: 15:11:18.291: gst_structure_get_int: assertion 'structure != NULL' failed
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1079) open OpenCV | GStreamer warning: cannot query video width/height
+[gmsl_camera_node-1] 
+[gmsl_camera_node-1] (python3:117847): GStreamer-CRITICAL **: 15:11:18.291: gst_structure_get_fraction: assertion 'structure != NULL' failed
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1085) open OpenCV | GStreamer warning: cannot query video fps
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1100) open OpenCV | GStreamer warning: Cannot query video position: status=0, value=-1, duration=-1
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src168 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (651) startPipeline OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778829078.799992005] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src169 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778829079.323672984] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src170 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778829079.837884732] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src171 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778829080.353672115] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src172 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778829080.866851991] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src173 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778829081.382652622] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src174 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778829081.898271904] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src175 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778829082.410264318] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src176 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778829082.919384641] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src177 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778829083.430712042] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src178 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+[gmsl_camera_node-1] [INFO] [1778829083.943013170] [front_gmsl_algo.gmsl_camera_node]: opening GStreamer pipeline: v4l2src device=/dev/video5 ! video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx,width=640,height=640 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (2075) handleMessage OpenCV | GStreamer warning: Embedded video playback halted; module v4l2src179 reported: Device '/dev/video5' is busy
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1053) open OpenCV | GStreamer warning: unable to start pipeline
+[gmsl_camera_node-1] [ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (616) isPipelinePlaying OpenCV | GStreamer warning: GStreamer: pipeline have not been created
+^C[WARNING] [launch]: user interrupted with ctrl-c (SIGINT)
+[gmsl_camera_node-1] Traceback (most recent call last):
+[gmsl_camera_node-1]   File "/home/cczh/USV_ROS/install/usv_vision/lib/usv_vision/gmsl_camera_node", line 33, in <module>
+[gmsl_camera_node-1]     sys.exit(load_entry_point('usv-vision==0.1.0', 'console_scripts', 'gmsl_camera_node')())
+[gmsl_camera_node-1]   File "/home/cczh/USV_ROS/install/usv_vision/lib/python3.10/site-packages/usv_vision/gmsl_camera_node.py", line 142, in main
+[gmsl_camera_node-1]     rclpy.shutdown()
+[gmsl_camera_node-1]   File "/opt/ros/humble/local/lib/python3.10/dist-packages/rclpy/__init__.py", line 130, in shutdown
+[gmsl_camera_node-1]     _shutdown(context=context)
+[gmsl_camera_node-1]   File "/opt/ros/humble/local/lib/python3.10/dist-packages/rclpy/utilities.py", line 58, in shutdown
+[gmsl_camera_node-1]     return context.shutdown()
+[gmsl_camera_node-1]   File "/opt/ros/humble/local/lib/python3.10/dist-packages/rclpy/context.py", line 102, in shutdown
+[gmsl_camera_node-1]     self.__context.shutdown()
+[gmsl_camera_node-1] rclpy._rclpy_pybind11.RCLError: failed to shutdown: rcl_shutdown already called on the given context, at ./src/rcl/init.c:241
+[ERROR] [gmsl_camera_node-1]: process has died [pid 117847, exit code 1, cmd '/home/cczh/USV_ROS/install/usv_vision/lib/usv_vision/gmsl_camera_node --ros-args -r __node:=gmsl_camera_node -r __ns:=/front_gmsl_algo --params-file /home/cczh/USV_ROS/src/usv_perception/usv_vision/config/gmsl_camera_algo_640.yaml'].
+cczh@ubuntu:~/USV_ROS$ 
+

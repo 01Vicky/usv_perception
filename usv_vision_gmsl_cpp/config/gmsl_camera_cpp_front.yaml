@@ -1,0 +1,43 @@
+# 参数含义与资源影响见: usv_vision/docs/parameters.md
+/**:
+  ros__parameters:
+    sensor_name: "front"
+    device_path: "/dev/video3"         # 前置相机通常在video0
+    frame_id: "front_camera_link"
+    camera_info_url: ""
+    width: 1920
+    height: 1536
+    fps: 30.0
+    pixel_format: "UYVY"
+    source_type: "v4l2_gmsl_hw_timestamp"
+    gstreamer_pipeline: ""
+    fallback_v4l2: true
+    enable_hardware_timestamp: true    # 启用硬件时间戳
+    auto_detect_resolution: false
+    put_timestamp: false
+    image_qos_reliability: "reliable"  # reliable：留给 rviz/录像等需要可靠交付的消费者
+    image_qos_depth: 2                 # 8.4MB 大帧下 depth 越大只是白占内存；10→2 实测送达帧数/延迟几乎无差
+
+    # ── 按需分发（采集端一次成帧、按消费者需求分发）────────────────────────
+    # image_raw   : 全分辨率 BGR，给推流/录像等"要原图"的消费者（QoS 见上）
+    # image_algo  : 算法尺寸 BGR，识别（yolo）与人工观察（rviz）共用；QoS 与 image_raw 同一套
+    #               无订阅者时不 resize 不发布（零开销）
+    #
+    # 观察画面怎么开：rviz 直接订阅 .../image_algo 即可（默认 QoS 就能看到画面），
+    # 要看检测框叠加则订阅 /perception/camera/{sensor_name}/annotated。
+    # 识别/推流等订阅端一律用 best_effort/depth1（只处理最新帧）。
+    enable_algo_stream: true          # 是否发布 image_algo
+    algo_width: 640                   # 算法图宽度（<=0 或与原始同尺寸则不缩放）
+    algo_height: 640                  # 算法图高度。原始 1920x1536 是 5:4；若要保比例应配 640x512
+    algo_resize_backend: cpu
+    algo_resize_threads: 1
+    # M3 内置推流：默认关闭，由 launch 的 stream_mode:=internal 注入地址后启用
+    enable_internal_stream: false
+    stream_rtsp_url: ""            # 空=由 launch 按相机顺序注入 rtsp://127.0.0.1:8554/camN
+    stream_bitrate: 4000000
+    stream_fps: 30
+    stream_iframe_interval: 15
+    stream_idr_interval: 30
+    stream_preset_level: 1
+    stream_control_rate: 1
+                                      # （640x640 会把画面拉成 1:1，检测精度可能略降）

@@ -1,0 +1,84 @@
+# 参数含义与资源影响见: usv_vision/docs/parameters.md
+# YOLO TensorRT 推理配置（Jetson 部署用）
+# 使用 usv_vision / yolo_infer_node
+/**:
+  ros__parameters:
+    sensor_name: "front"
+    camera_id: "front"
+
+    # ── 输入源（采集端按需分发） ─────────────
+    # 驱动一次成帧后分发两种规格：image_raw(全分辨率，给推流/录像) / image_algo(算法小图，
+    # 识别与 rviz 观察共用，best_effort/depth1)
+    # 识别链默认吃 image_algo；若驱动侧 enable_algo_stream:=false，则把这里置 false 回退 image_raw
+    use_algo_image: true
+    # 坐标/阈值基准分辨率：0 = 以订阅到的图像尺寸为准（改造前行为）
+    # 填 1920/1536 时，下游 bbox_x/bbox_width/pixel_width 仍是原生分辨率坐标，
+    # min_box_width_px / min_box_height_px 仍按原生分辨率像素解释，内部自动换算到输入尺寸。
+    # 注意：填值必须与 image_raw 的原生分辨率一致，否则 bbox 坐标会整体缩放错。
+    reference_width: 1920
+    reference_height: 1536
+
+    # ── 模型（部署前需导出 engine） ──────────
+    # python3 scripts/export_engine_jetson.py --model best.pt --imgsz 640
+    engine_path: "model/jetson/yolo11n_fp16_640.engine"
+    model_backend: "tensorrt"
+
+    # ── 推理分辨率 ───────────────────────────
+    infer_width: 640
+    infer_height: 640
+    max_det: 20
+
+    # ── 检测阈值 ─────────────────────────────
+    conf_threshold: 0.40
+    iou_threshold: 0.55
+    min_box_width_px: 12
+    min_box_height_px: 8
+    min_box_area_ratio: 0.0003
+
+    # ── 去重 ─────────────────────────────────
+    dedup_iou_threshold: 0.55
+    dedup_min_iou: 0.10
+    dedup_center_dist_ratio: 0.03
+    dedup_containment_threshold: 0.85
+    dedup_larger_box_conf_margin: 0.08
+
+    # ── 时序平滑 ─────────────────────────────
+    bbox_expand_ratio: 0.06
+    enable_temporal_smoothing: true
+    track_iou_threshold: 0.30
+    track_max_age_sec: 0.35
+    track_smoothing_alpha: 0.65
+    track_min_hits: 2
+
+    # ── 输出控制 ─────────────────────────────
+    publish_debug_image: true
+    publish_legacy_targets: true
+    startup_report_hz: 0.5
+
+    # ── 方位估计（单目水天线法） ─────────────
+    camera_horizontal_fov_deg: 90.0
+
+    # ── 类别过滤（空＝保留全部） ─────────────
+    class_name_allowlist: ["boat"]
+    class_id_allowlist: []
+
+    # ── 视图蒙版（忽略影响识别的区域，如船头/甲板）──
+    # 约定(mask 图像)：像素值 == 0(黑) → 识别区；像素值 >= mask_ignore_min(你涂的) → 忽略区
+    # 忽略区在送入模型前填充为 mask_fill(默认114=Ultralytics中性灰)，因此该区不参与识别。
+    # 纯输入蒙版，检出后不做输出过滤(避免误删跨边界真实目标)。
+    enable_mask: true            # 总开关
+    mask_path: "src/usv_perception/usv_vision/config/masks/front_mask.png"
+                                  # 形式一：mask 图像路径(黑=识别/你涂的=忽略)
+                                  # 相对进程当前目录解析；从 ARM 工作区根目录启动时可用。
+                                  # 运行目录非工作区根或部署机路径不同时, 请填绝对路径
+    mask_ignore_min: 1            # 像素值 >= 此值(0~255)视为忽略区
+    mask_polygons_json: ""        # 形式二：归一化多边形(0~1,左上原点) JSON，如 "[[[0,0.6],[1,0.6],[1,1],[0,1]]]"，内部=忽略区
+    mask_fill: 114                # 忽略区填充值(0~255)；114=Ultralytics letterbox 中性灰
+
+    # ── 话题覆盖（空＝从 sensor_name 推导） ──
+    image_topic: ""
+    camera_info_topic: ""
+    vision_detections_topic: ""
+    vision_objects_topic: ""
+    annotated_topic: ""
+    infer_status_topic: ""

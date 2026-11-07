@@ -1,0 +1,200 @@
+usv_vision Jetson 满帧率接入命令清单
+====================================
+
+1. 进入工作区
+------------
+cd /home/cczh/USV_ROS
+source /opt/ros/humble/setup.bash
+
+
+2. 基础环境检查
+--------------
+python3 --version
+python3 -c "import cv2; print(cv2.__version__)"
+ls /dev/video*
+gst-inspect-1.0 v4l2src
+gst-inspect-1.0 nvvidconv
+gst-inspect-1.0 nvv4l2h264enc
+gst-inspect-1.0 videoconvert
+gst-inspect-1.0 appsink
+
+
+3. 编译功能包
+------------
+cd /home/cczh/USV_ROS
+source /opt/ros/humble/setup.bash
+colcon build --packages-select usv_interfaces usv_vision
+source install/setup.bash
+
+
+4. 检查相机是否被占用
+--------------------
+ros2 node list
+ps -ef | grep gmsl_camera_node | grep -v grep
+fuser /dev/video4
+fuser /dev/video5
+
+
+5. 如有残留进程先清理
+--------------------
+pkill -f usv_vision.launch.py
+pkill -f gmsl_camera_node
+sleep 2
+ros2 node list
+fuser /dev/video4
+fuser /dev/video5
+
+
+6. 前路相机底层直出满帧率检查
+----------------------------
+gst-launch-1.0 -ev \
+  v4l2src device=/dev/video4 ! \
+  video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! \
+  fpsdisplaysink text-overlay=1 video-sink=fakesink sync=0
+
+
+7. 后路相机底层直出满帧率检查
+----------------------------
+gst-launch-1.0 -ev \
+  v4l2src device=/dev/video5 ! \
+  video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! \
+  fpsdisplaysink text-overlay=1 video-sink=fakesink sync=0
+
+
+8. CPU 缩放加 BGR 基线  话
+---------------------
+gst-launch-1.0 -ev \
+  v4l2src device=/dev/video5 ! \
+  video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! \
+  videoscale ! videoconvert ! \
+  video/x-raw,format=BGR,width=640,height=640 ! \
+  fpsdisplaysink text-overlay=1 video-sink=fakesink sync=0
+
+
+9. nvvidconv 低分辨率满帧率管线
+------------------------------
+gst-launch-1.0 -ev \
+  v4l2src device=/dev/video5 ! \
+  video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! \
+  nvvidconv ! \
+  video/x-raw,format=BGRx,width=640,height=640 ! \
+  videoconvert ! video/x-raw,format=BGR ! \
+  fpsdisplaysink text-overlay=1 video-sink=fakesink sync=0
+
+
+10. 当前高分辨率 ROS 接入链
+--------------------------
+cd /home/cczh/USV_ROS
+source /opt/ros/humble/setup.bash
+source install/setup.bash
+ros2 launch usv_vision usv_vision.launch.py \
+  namespace:=front_gmsl \
+  gmsl_config:=/home/cczh/USV_ROS/src/usv_perception/usv_vision/config/gmsl_camera.yaml
+
+
+11. 高分辨率 ROS 链检查
+----------------------
+ros2 topic echo /front_gmsl/frame_timing_json --once
+ros2 topic hz /front_gmsl/image_raw
+ros2 topic bw /front_gmsl/image_raw
+
+
+12. 低分辨率 nvvidconv ROS 接入链
+--------------------------------
+cd /home/cczh/USV_ROS
+source /opt/ros/humble/setup.bash
+source install/setup.bash
+ros2 launch usv_vision usv_vision.launch.py \
+  namespace:=front_gmsl_algo \
+  gmsl_config:=/home/cczh/USV_ROS/src/usv_perception/usv_vision/config/gmsl_camera_algo_640.yaml
+
+
+13. 低分辨率 nvvidconv ROS 链检查
+--------------------------------
+ros2 topic echo /front_gmsl_algo/frame_timing_json --once
+ros2 topic hz /front_gmsl_algo/image_raw
+ros2 topic bw /front_gmsl_algo/image_raw
+
+
+14. 低分辨率 CPU 备份版 ROS 接入链 题频率仅为6～7
+---------------------------------
+cd /home/cczh/USV_ROS
+source /opt/ros/humble/setup.bash
+source install/setup.bash
+ros2 launch usv_vision usv_vision.launch.py \
+  namespace:=front_gmsl_algo_cpu \
+  gmsl_config:=/home/cczh/USV_ROS/src/usv_perception/usv_vision/config/gmsl_camera_algo_640_cpu_backup.yaml
+
+
+15. 低分辨率 CPU 备份版 ROS 链检查
+---------------------------------
+ros2 topic echo /front_gmsl_algo_cpu/frame_timing_json --once
+ros2 topic hz /front_gmsl_algo_cpu/image_raw
+ros2 topic bw /front_gmsl_algo_cpu/image_raw
+
+
+16. 双路接入
+-----------
+cd /home/cczh/USV_ROS
+source /opt/ros/humble/setup.bash
+source install/setup.bash
+ros2 launch usv_vision dual_gmsl.launch.py
+
+
+17. 双路 ROS 链检查
+------------------
+ros2 topic hz /front_gmsl/image_raw
+ros2 topic bw /front_gmsl/image_raw
+ros2 topic hz /rear_gmsl/image_raw
+ros2 topic bw /rear_gmsl/image_raw
+
+
+18. 自动采集：nvvidconv 低分辨率链
+--------------------------------
+cd /home/cczh/USV_ROS
+bash src/usv_perception/usv_vision/scripts/jetson_collect_benchmarks.sh \
+  --case-name ingest_nvvidconv \
+  --mode ros \
+  --launch-cmd "cd /home/cczh/USV_ROS && source /opt/ros/humble/setup.bash && source install/setup.bash && ros2 launch usv_vision usv_vision.launch.py namespace:=front_gmsl_algo gmsl_config:=/home/cczh/USV_ROS/src/usv_perception/usv_vision/config/gmsl_camera_algo_640.yaml" \
+  --topic /front_gmsl_algo/image_raw \
+  --duration 20 \
+  --startup-wait 6 \
+  --pipeline-type ros_bgr_nvvidconv \
+  --target-resolution 640x640 \
+  --results-dir /home/cczh/USV_ROS/test_logs/full_fps_ingest \
+  --notes "full fps ingest nvvidconv"
+
+
+19. 自动采集：CPU 备份版链
+-------------------------
+cd /home/cczh/USV_ROS
+bash src/usv_perception/usv_vision/scripts/jetson_collect_benchmarks.sh \
+  --case-name ingest_cpu_backup \
+  --mode ros \
+  --launch-cmd "cd /home/cczh/USV_ROS && source /opt/ros/humble/setup.bash && source install/setup.bash && ros2 launch usv_vision usv_vision.launch.py namespace:=front_gmsl_algo gmsl_config:=/home/cczh/USV_ROS/src/usv_perception/usv_vision/config/gmsl_camera_algo_640_cpu_backup.yaml" \
+  --topic /front_gmsl_algo/image_raw \
+  --duration 20 \
+  --startup-wait 6 \
+  --pipeline-type ros_bgr_cpu_backup \
+  --target-resolution 640x640 \
+  --results-dir /home/cczh/USV_ROS/test_logs/full_fps_ingest \
+  --notes "full fps ingest cpu backup"
+
+
+20. 查看自动采集结果
+-------------------
+ls -lah /home/cczh/USV_ROS/test_logs/full_fps_ingest
+cat /home/cczh/USV_ROS/test_logs/full_fps_ingest/benchmark_results.csv
+
+
+21. 记录资源占用
+---------------
+mkdir -p /home/cczh/USV_ROS/test_logs
+tegrastats --interval 1000 --logfile /home/cczh/USV_ROS/test_logs/full_fps_ingest_tegrastats.log
+
+
+22. 快速健康检查
+---------------
+cd /home/cczh/USV_ROS
+bash src/usv_perception/usv_vision/scripts/gmsl_health_check.sh
+CHECK_ROS=1 bash src/usv_perception/usv_vision/scripts/gmsl_health_check.sh

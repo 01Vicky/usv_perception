@@ -1,0 +1,310 @@
+usv_vision Jetson nvvidconv 试跑命令清单
+========================================
+gst-launch-1.0 -ev v4l2src device=/dev/video5 ! "video/x-raw, format=(string)UYVY, width=(int)1920, height=(int)1536" ! fpsdisplaysink text-overlay=0 video-sink=xvimagesink sync=0
+
+改动记录
+--------
+1. `gmsl_camera_algo_640.yaml` 已从 CPU 管线切到 `nvvidconv -> BGRx -> videoconvert -> BGR`
+2. `gmsl_camera_algo_640.yaml` 的 `fps` 目标已从 `15.0` 调整为 `30.0`
+3. 原 CPU 版本已备份为 `gmsl_camera_algo_640_cpu_backup.yaml`
+4. 如需回退，可直接用备份配置重新启动
+
+
+1. 进入工作区并加载环境
+----------------------
+cd /home/cczh/USV_ROS
+source /opt/ros/humble/setup.bash
+
+
+2. 确认新旧配置都在
+------------------
+ls /home/cczh/USV_ROS/src/usv_perception/usv_vision/config/gmsl_camera_algo_640.yaml
+ls /home/cczh/USV_ROS/src/usv_perception/usv_vision/config/gmsl_camera_algo_640_cpu_backup.yaml
+
+
+3. 重新编译
+----------
+cd /home/cczh/USV_ROS
+source /opt/ros/humble/setup.bash
+colcon build --packages-select usv_interfaces usv_vision
+source install/setup.bash
+
+
+4. 检查 nvvidconv 插件
+---------------------
+gst-inspect-1.0 nvvidconv
+gst-inspect-1.0 videoconvert
+gst-inspect-1.0 appsink
+
+
+5. 先用纯 gst 验证 nvvidconv 640x640 管线
+----------------------------------------
+gst-launch-1.0 -ev \
+  v4l2src device=/dev/video4 ! \
+  video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1 ! \
+  nvvidconv ! \
+  video/x-raw,format=BGRx,width=640,height=640 ! \
+  videoconvert ! video/x-raw,format=BGR ! \
+  fpsdisplaysink text-overlay=1 video-sink=fakesink sync=0
+
+/GstPipeline:pipeline0/GstFPSDisplaySink:fpsdisplaysink0/GstFakeSink:fakesink0: sync = false
+/GstPipeline:pipeline0/GstFPSDisplaySink:fpsdisplaysink0/GstTextOverlay:fps-display-text-overlay: text = rendered: 18, dropped: 0, current: 34.18, average: 34.18
+/GstPipeline:pipeline0/GstFPSDisplaySink:fpsdisplaysink0: last-message = rendered: 18, dropped: 0, current: 34.18, average: 34.18
+/GstPipeline:pipeline0/GstFPSDisplaySink:fpsdisplaysink0/GstTextOverlay:fps-display-text-overlay: text = rendered: 34, dropped: 0, current: 30.38, average: 32.28
+/GstPipeline:pipeline0/GstFPSDisplaySink:fpsdisplaysink0: last-message = rendered: 34, dropped: 0, current: 30.38, average: 32.28
+/GstPipeline:pipeline0/GstFPSDisplaySink:fpsdisplaysink0/GstTextOverlay:fps-display-text-overlay: text = rendered: 49, dropped: 0, current: 29.95, average: 31.53
+/GstPipeline:pipeline0/GstFPSDisplaySink:fpsdisplaysink0: last-message = rendered: 49, dropped: 0, current: 29.95, average: 31.53
+
+
+6. 启动新的低分辨率算法链
+------------------------
+cd /home/cczh/USV_ROS
+source /opt/ros/humble/setup.bash
+source install/setup.bash
+ros2 launch usv_vision usv_vision.launch.py \
+  namespace:=front_gmsl_algo \
+  gmsl_config:=/home/cczh/USV_ROS/src/usv_perception/usv_vision/config/gmsl_camera_algo_640.yaml
+
+
+7. 检查新算法链输出
+------------------
+ros2 topic echo /front_gmsl_algo/frame_timing_json --once
+ros2 topic hz /front_gmsl_algo/image_raw
+ros2 topic bw /front_gmsl_algo/image_raw
+
+cczh@ubuntu:~/USV_ROS$ ros2 topic echo /front_gmsl_algo/frame_timing_json --once
+data: '{"frame_id": "front_gmsl_link", "source_type": "v4l2_gmsl_algo_nvvidconv", "backend": "gstreamer", "source": "/dev/video5", "ima...'
+---
+cczh@ubuntu:~/USV_ROS$ ros2 topic hz /front_gmsl_algo/image_raw
+average rate: 28.796
+	min: 0.031s max: 0.067s std dev: 0.00622s window: 30
+average rate: 27.890
+	min: 0.031s max: 0.067s std dev: 0.00857s window: 57
+^Ccczh@ubuntu:~/USV_ROSros2 topic bw /front_gmsl_algo/image_rawaw
+Subscribed to [/front_gmsl_algo/image_raw]
+35.61 MB/s from 27 messages
+	Message size mean: 1.23 MB min: 1.23 MB max: 1.23 MB
+35.63 MB/s from 56 messages
+	Message size mean: 1.23 MB min: 1.23 MB max: 1.23 MB
+^Ccczh@ubuntu:~/USV_ROS$ 
+
+8. 启动旧 CPU 备份版本做对照
+---------------------------
+cd /home/cczh/USV_ROS
+source /opt/ros/humble/setup.bash
+source install/setup.bash
+ros2 launch usv_vision usv_vision.launch.py \
+  namespace:=front_gmsl_algo \
+  gmsl_config:=/home/cczh/USV_ROS/src/usv_perception/usv_vision/config/gmsl_camera_algo_640_cpu_backup.yaml
+
+
+9. 检查旧 CPU 备份版本输出
+-------------------------
+ros2 topic echo /front_gmsl_algo/frame_timing_json --once
+ros2 topic hz /front_gmsl_algo/image_raw
+ros2 topic bw /front_gmsl_algo/image_raw
+
+cczh@ubuntu:~/USV_ROS$ ros2 topic echo /front_gmsl_algo/frame_timing_json --once
+data: '{"frame_id": "front_gmsl_link", "source_type": "v4l2_gmsl_algo", "backend": "gstreamer", "source": "/dev/video5", "image": {"wid...'
+---
+cczh@ubuntu:~/USV_ROS$ ros2 topic hz /front_gmsl_algo/image_raw
+average rate: 7.400
+	min: 0.134s max: 0.139s std dev: 0.00139s window: 9
+average rate: 7.399
+	min: 0.134s max: 0.139s std dev: 0.00110s window: 17
+^Ccczh@ubuntu:~/USV_ROSros2 topic bw /front_gmsl_algo/image_raw
+Subscribed to [/front_gmsl_algo/image_raw]
+9.15 MB/s from 6 messages
+	Message size mean: 1.23 MB min: 1.23 MB max: 1.23 MB
+9.53 MB/s from 14 messages
+	Message size mean: 1.23 MB min: 1.23 MB max: 1.23 MB
+
+10. 保存资源日志
+---------------
+mkdir -p /home/cczh/USV_ROS/test_logs
+tegrastats --interval 1000 --logfile /home/cczh/USV_ROS/test_logs/tegrastats_nvvidconv_try.log
+
+
+11. 使用自动采集脚本跑新配置
+---------------------------
+cd /home/cczh/USV_ROS
+bash src/usv_perception/usv_vision/scripts/jetson_collect_benchmarks.sh \
+  --case-name ros_bgr_640_front_nvvidconv \
+  --mode ros \
+  --launch-cmd "cd /home/cczh/USV_ROS && source /opt/ros/humble/setup.bash && source install/setup.bash && ros2 launch usv_vision usv_vision.launch.py namespace:=front_gmsl_algo gmsl_config:=/home/cczh/USV_ROS/src/usv_perception/usv_vision/config/gmsl_camera_algo_640.yaml" \
+  --topic /front_gmsl_algo/image_raw \
+  --duration 20 \
+  --startup-wait 6 \
+  --pipeline-type ros_bgr_nvvidconv \
+  --target-resolution 640x640 \
+  --results-dir /home/cczh/USV_ROS/test_logs/benchmarks \
+  --notes "front camera ros low resolution nvvidconv"
+
+cczh@ubuntu:~/USV_ROSbash src/usv_perception/usv_vision/scripts/jetson_collect_benchmarks.sh \ \
+  --case-name ros_bgr_640_front_nvvidconv \
+  --mode ros \
+  --launch-cmd "cd /home/cczh/USV_ROS && source /opt/ros/humble/setup.bash && source install/setup.bash && ros2 launch usv_vision usv_vision.launch.py namespace:=front_gmsl_algo gmsl_config:=/home/cczh/USV_ROS/src/usv_perception/usv_vision/config/gmsl_camera_algo_640.yaml" \
+  --topic /front_gmsl_algo/image_raw \
+  --duration 20 \
+  --startup-wait 6 \
+  --pipeline-type ros_bgr_nvvidconv \
+  --target-resolution 640x640 \
+  --results-dir /home/cczh/USV_ROS/test_logs/benchmarks \
+  --notes "front camera ros low resolution nvvidconv"
+{
+  "case_name": "ros_bgr_640_front_nvvidconv",
+  "mode": "ros",
+  "device_or_topic": "/front_gmsl_algo/image_raw",
+  "pipeline_type": "ros_bgr_nvvidconv",
+  "target_resolution": "640x640",
+  "observed_resolution": "NA",
+  "fps_mean": "28.438",
+  "fps_min": "28.049",
+  "fps_max": "28.981",
+  "msg_size_mb": "1.230",
+  "bandwidth_mb_s": "34.448",
+  "cpu_percent_avg": "NA",
+  "gpu_percent_avg": "15.255",
+  "temp_c_avg": "NA",
+  "notes": "front camera ros low resolution nvvidconv"
+}
+
+12. 使用自动采集脚本跑旧 CPU 备份配置
+------------------------------------
+cd /home/cczh/USV_ROS
+bash src/usv_perception/usv_vision/scripts/jetson_collect_benchmarks.sh \
+  --case-name ros_bgr_640_front_cpu_backup \
+  --mode ros \
+  --launch-cmd "cd /home/cczh/USV_ROS && source /opt/ros/humble/setup.bash && source install/setup.bash && ros2 launch usv_vision usv_vision.launch.py namespace:=front_gmsl_algo gmsl_config:=/home/cczh/USV_ROS/src/usv_perception/usv_vision/config/gmsl_camera_algo_640_cpu_backup.yaml" \
+  --topic /front_gmsl_algo/image_raw \
+  --duration 20 \
+  --startup-wait 6 \
+  --pipeline-type ros_bgr_cpu_backup \
+  --target-resolution 640x640 \
+  --results-dir /home/cczh/USV_ROS/test_logs/benchmarks \
+  --notes "front camera ros low resolution cpu backup"
+
+cczh@ubuntu:~/USV_ROS$ bash src/usv_perception/usv_vision/scripts/jetson_collect_benchmarks.sh \
+  --case-name ros_bgr_640_front_cpu_backup \
+  --mode ros \
+  --launch-cmd "cd /home/cczh/USV_ROS && source /opt/ros/humble/setup.bash && source install/setup.bash && ros2 launch usv_vision usv_vision.launch.py namespace:=front_gmsl_algo gmsl_config:=/home/cczh/USV_ROS/src/usv_perception/usv_vision/config/gmsl_camera_algo_640_cpu_backup.yaml" \
+  --topic /front_gmsl_algo/image_raw \
+  --duration 20 \
+  --startup-wait 6 \
+  --pipeline-type ros_bgr_cpu_backup \
+  --target-resolution 640x640 \
+  --results-dir /home/cczh/USV_ROS/test_logs/benchmarks \
+  --notes "front camera ros low resolution cpu backup"
+{
+  "case_name": "ros_bgr_640_front_cpu_backup",
+  "mode": "ros",
+  "device_or_topic": "/front_gmsl_algo/image_raw",
+  "pipeline_type": "ros_bgr_cpu_backup",
+  "target_resolution": "640x640",
+  "observed_resolution": "NA",
+  "fps_mean": "27.930",
+  "fps_min": "27.320",
+  "fps_max": "29.797",
+  "msg_size_mb": "1.230",
+  "bandwidth_mb_s": "34.030",
+  "cpu_percent_avg": "NA",
+  "gpu_percent_avg": "7.340",
+  "temp_c_avg": "NA",
+  "notes": "front camera ros low resolution cpu backup"
+}
+
+13. 查看自动采集结果
+-------------------
+ls -lah /home/cczh/USV_ROS/test_logs/benchmarks
+cat /home/cczh/USV_ROS/test_logs/benchmarks/benchmark_results.csv
+cat /home/cczh/USV_ROS/test_logs/benchmarks/ros_bgr_640_front_nvvidconv_summary.json
+cat /home/cczh/USV_ROS/test_logs/benchmarks/ros_bgr_640_front_cpu_backup_summary.json
+
+
+
+
+cczh@ubuntu:~/USV_ROS$ ls -lah /home/cczh/USV_ROS/test_logs/benchmarks
+总计 240K
+drwxrwxr-x 2 cczh cczh 4.0K  5月 15 14:24 .
+drwxrwxr-x 3 cczh cczh 4.0K  5月 15 12:12 ..
+-rw-rw-r-- 1 cczh cczh 1.9K  5月 15 14:24 benchmark_results.csv
+-rw-rw-r-- 1 cczh cczh 4.9K  5月 15 12:17 cpu_bgr_640_front_stdout.log
+-rw-rw-r-- 1 cczh cczh  429  5月 15 12:17 cpu_bgr_640_front_summary.json
+-rw-rw-r-- 1 cczh cczh    0  5月 15 12:17 cpu_bgr_640_front_tegrastats.log
+-rw-rw-r-- 1 cczh cczh 4.7K  5月 15 12:18 cpu_scale_only_640_front_stdout.log
+-rw-rw-r-- 1 cczh cczh  426  5月 15 12:18 cpu_scale_only_640_front_summary.json
+-rw-rw-r-- 1 cczh cczh    0  5月 15 12:18 cpu_scale_only_640_front_tegrastats.log
+-rw-rw-r-- 1 cczh cczh 5.6K  5月 15 12:18 nvvidconv_bgrx_640_front_stdout.log
+-rw-rw-r-- 1 cczh cczh  435  5月 15 12:18 nvvidconv_bgrx_640_front_summary.json
+-rw-rw-r-- 1 cczh cczh    0  5月 15 12:18 nvvidconv_bgrx_640_front_tegrastats.log
+-rw-rw-r-- 1 cczh cczh 4.7K  5月 15 12:18 nvvidconv_nv12_640_front_stdout.log
+-rw-rw-r-- 1 cczh cczh  426  5月 15 12:18 nvvidconv_nv12_640_front_summary.json
+-rw-rw-r-- 1 cczh cczh    0  5月 15 12:18 nvvidconv_nv12_640_front_tegrastats.log
+-rw-rw-r-- 1 cczh cczh 3.5K  5月 15 12:16 raw_1920_direct_front_stdout.log
+-rw-rw-r-- 1 cczh cczh  430  5月 15 12:16 raw_1920_direct_front_summary.json
+-rw-rw-r-- 1 cczh cczh 6.4K  5月 15 12:15 raw_1920_direct_front_tegrastats.log
+-rw-rw-r-- 1 cczh cczh  144  5月 15 14:24 ros_bgr_640_front_cpu_backup_frame_info.log
+-rw-rw-r-- 1 cczh cczh  74K  5月 15 14:24 ros_bgr_640_front_cpu_backup_stdout.log
+-rw-rw-r-- 1 cczh cczh  486  5月 15 14:24 ros_bgr_640_front_cpu_backup_summary.json
+-rw-rw-r-- 1 cczh cczh  15K  5月 15 14:24 ros_bgr_640_front_cpu_backup_tegrastats.log
+-rw-rw-r-- 1 cczh cczh 1.5K  5月 15 14:24 ros_bgr_640_front_cpu_backup_topic_bw.log
+-rw-rw-r-- 1 cczh cczh 1.4K  5月 15 14:23 ros_bgr_640_front_cpu_backup_topic_hz.log
+-rw-rw-r-- 1 cczh cczh  144  5月 15 14:19 ros_bgr_640_front_nvvidconv_frame_info.log
+-rw-rw-r-- 1 cczh cczh  915  5月 15 14:19 ros_bgr_640_front_nvvidconv_stdout.log
+-rw-rw-r-- 1 cczh cczh  484  5月 15 14:19 ros_bgr_640_front_nvvidconv_summary.json
+-rw-rw-r-- 1 cczh cczh  15K  5月 15 14:19 ros_bgr_640_front_nvvidconv_tegrastats.log
+-rw-rw-r-- 1 cczh cczh 1.6K  5月 15 14:19 ros_bgr_640_front_nvvidconv_topic_bw.log
+-rw-rw-r-- 1 cczh cczh 1.4K  5月 15 14:19 ros_bgr_640_front_nvvidconv_topic_hz.log
+-rw-rw-r-- 1 cczh cczh  324  5月 15 12:19 rtsp_recv_1920_rear_stdout.log
+-rw-rw-r-- 1 cczh cczh  441  5月 15 12:19 rtsp_recv_1920_rear_summary.json
+-rw-rw-r-- 1 cczh cczh 6.1K  5月 15 12:19 rtsp_recv_1920_rear_tegrastats.log
+cczh@ubuntu:~/USV_ROS$ cat /home/cczh/USV_ROS/test_logs/benchmarks/benchmark_results.csv
+case_name,device_or_topic,pipeline_type,target_resolution,observed_resolution,fps_mean,fps_min,fps_max,msg_size_mb,bandwidth_mb_s,cpu_percent_avg,gpu_percent_avg,temp_c_avg,notes
+"raw_1920_direct_front","/dev/video4","raw_direct","1920x1536","NA","1.475","1.170","1.950","NA","NA","NA","28.700","NA","front camera raw direct baseline"
+"raw_1920_direct_front","/dev/video4","raw_direct","1920x1536","NA","NA","NA","NA","NA","NA","NA","28.700","NA","front camera raw direct baseline"
+"raw_1920_direct_front","/dev/video5","raw_direct","1920x1536","NA","NA","NA","NA","NA","NA","NA","28.700","NA","front camera raw direct baseline"
+"raw_1920_direct_front","/dev/video5","raw_direct","1920x1536","NA","NA","NA","NA","NA","NA","NA","28.700","NA","front camera raw direct baseline"
+"cpu_bgr_640_front","/dev/video5","cpu_bgr","640x640","NA","NA","NA","NA","NA","NA","NA","NA","NA","front camera cpu videoscale videoconvert bgr"
+"cpu_scale_only_640_front","/dev/video5","cpu_scale_only","640x640","NA","NA","NA","NA","NA","NA","NA","NA","NA","front camera cpu scale only"
+"nvvidconv_bgrx_640_front","/dev/video5","nvvidconv_bgrx","640x640","NA","NA","NA","NA","NA","NA","NA","NA","NA","front camera nvvidconv bgrx then bgr"
+"nvvidconv_nv12_640_front","/dev/video5","nvvidconv_nv12","640x640","NA","NA","NA","NA","NA","NA","NA","NA","NA","front camera nvvidconv nv12"
+"rtsp_recv_1920_rear","rtsp://10.42.0.81:8554/cam1","rtsp_recv","1920x1536","NA","NA","NA","NA","NA","NA","NA","19.842","NA","rear camera rtsp receive path"
+"ros_bgr_640_front_nvvidconv","/front_gmsl_algo/image_raw","ros_bgr_nvvidconv","640x640","NA","28.438","28.049","28.981","1.230","34.448","NA","15.255","NA","front camera ros low resolution nvvidconv"
+"ros_bgr_640_front_cpu_backup","/front_gmsl_algo/image_raw","ros_bgr_cpu_backup","640x640","NA","27.930","27.320","29.797","1.230","34.030","NA","7.340","NA","front camera ros low resolution cpu backup"
+cczh@ubuntu:~/USV_ROS$ cat /home/cczh/USV_ROS/test_logs/benchmarks/ros_bgr_640_front_nvvidconv_summary.json
+{
+  "case_name": "ros_bgr_640_front_nvvidconv",
+  "mode": "ros",
+  "device_or_topic": "/front_gmsl_algo/image_raw",
+  "pipeline_type": "ros_bgr_nvvidconv",
+  "target_resolution": "640x640",
+  "observed_resolution": "NA",
+  "fps_mean": "28.438",
+  "fps_min": "28.049",
+  "fps_max": "28.981",
+  "msg_size_mb": "1.230",
+  "bandwidth_mb_s": "34.448",
+  "cpu_percent_avg": "NA",
+  "gpu_percent_avg": "15.255",
+  "temp_c_avg": "NA",
+  "notes": "front camera ros low resolution nvvidconv"
+}
+cczh@ubuntu:~/USV_ROS$ cat /home/cczh/USV_ROS/test_logs/benchmarks/ros_bgr_640_front_cpu_backup_summary.json
+{
+  "case_name": "ros_bgr_640_front_cpu_backup",
+  "mode": "ros",
+  "device_or_topic": "/front_gmsl_algo/image_raw",
+  "pipeline_type": "ros_bgr_cpu_backup",
+  "target_resolution": "640x640",
+  "observed_resolution": "NA",
+  "fps_mean": "27.930",
+  "fps_min": "27.320",
+  "fps_max": "29.797",
+  "msg_size_mb": "1.230",
+  "bandwidth_mb_s": "34.030",
+  "cpu_percent_avg": "NA",
+  "gpu_percent_avg": "7.340",
+  "temp_c_avg": "NA",
+  "notes": "front camera ros low resolution cpu backup"
+}
+
