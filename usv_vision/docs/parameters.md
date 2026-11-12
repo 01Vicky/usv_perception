@@ -16,6 +16,7 @@
 | `image_qos_reliability` | `reliable` | `image_raw` 的发布可靠性。reliable 让 rviz/录像零配置可用 | CPU（慢读者会重传） |
 | `image_qos_depth` | 2 | `image_raw` 队列深度。8.8MB 大帧下 depth 越大只是白占内存 | 内存 |
 | **`publish_only_when_subscribed`** | true | **触发式发布**：没有订阅者时 `image_raw` / `image_algo` / `camera_info` 完全不发（不拷贝、不序列化、不写共享内存）。三路实测采集节点合计 **0.71 → 0.45 核**；推流/录包/rviz 订阅后下一轮立即恢复发布。`false`=旧行为（总是发），仅排障用 | CPU | 
+| `put_timestamp` | false | 在 `image_raw` / `image_algo` 左上角叠加该帧采集时间戳（`ms` 格式，对时/延迟排查用）。开启后每帧多一次 `putText`（约亚毫秒级），默认关 | CPU（开启时） |
 | `enable_algo_stream` | true | 是否发布 `image_algo`（识别用小图）。关闭后识别不可用 | CPU / DDS 带宽 |
 | `algo_width` / `algo_height` | 640 / 640 | 算法图尺寸。原始 1920×1536 是 5:4，保比例应配 **640×512** | CPU（resize） |
 | **`algo_resize_backend`** | `cpu` | `cuda`=GPU 融合转色+缩放；`cpu`=OpenCV。**实测两者等同**（cuda 的显存流量吃掉收益），默认 cpu 少一层依赖；整机 CPU 紧张时可切 cuda 换 CPU 余量 | CPU ↔ GPU |

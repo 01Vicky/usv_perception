@@ -13,12 +13,10 @@
     height: 1536
     fps: 30.0
     pixel_format: "UYVY"
-    source_type: "v4l2_gmsl_hw_timestamp"
     gstreamer_pipeline: ""
-    fallback_v4l2: true
     enable_hardware_timestamp: true
     auto_detect_resolution: false
-    put_timestamp: false
+    put_timestamp: false           # 在图上叠加采集时间戳（调试/对时用；开时每帧多一次 putText）
     image_qos_reliability: "best_effort"
     image_qos_depth: 1
     # M3 内置推流：默认关闭，由 launch 的 stream_mode:=internal 注入地址后启用

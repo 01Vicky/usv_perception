@@ -13,12 +13,10 @@
     height: 1536
     fps: 30.0
     pixel_format: "UYVY"
-    source_type: "v4l2_gmsl_hw_timestamp"
     gstreamer_pipeline: ""
-    fallback_v4l2: true
     enable_hardware_timestamp: true    # 启用硬件时间戳
     auto_detect_resolution: false
-    put_timestamp: false
+    put_timestamp: false           # 在图上叠加采集时间戳（调试/对时用；开时每帧多一次 putText）
     image_qos_reliability: "reliable"  # reliable：留给 rviz/录像等需要可靠交付的消费者
     image_qos_depth: 2                 # 8.4MB 大帧下 depth 越大只是白占内存；10→2 实测送达帧数/延迟几乎无差
 

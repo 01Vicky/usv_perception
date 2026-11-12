@@ -49,7 +49,6 @@ public:
     {
         // 声明参数（与Python版本保持一致）
         this->declare_parameter("sensor_name", "front");
-        this->declare_parameter("camera_name", "front");
         this->declare_parameter("device_path", "/dev/video0");
         this->declare_parameter("frame_id", "front_camera_link");
         this->declare_parameter("camera_info_url", "");
@@ -61,12 +60,9 @@ public:
         this->declare_parameter("height", 1536);
         this->declare_parameter("fps", 30.0);
         this->declare_parameter("pixel_format", "UYVY");
-        this->declare_parameter("source_type", "v4l2_gmsl");
         this->declare_parameter("gstreamer_pipeline", "");
-        this->declare_parameter("fallback_v4l2", true);
         this->declare_parameter("enable_hardware_timestamp", true);
         this->declare_parameter("auto_detect_resolution", false);  // 自动检测分辨率
-        this->declare_parameter("put_timestamp", false);
         this->declare_parameter("sync_camera_bit_mask", 0);  // 多相机硬件同步掩码：0=自动(1<<camera_no), 非0=手动设置
         this->declare_parameter("image_qos_reliability", "best_effort");
         // depth 默认 2：8.4MB 大帧下 reliable/depth10 会白占 ~84MB/相机，实测 depth2 与 depth10
@@ -191,6 +187,9 @@ public:
             algo_transport_ = "raw";
         }
         pub_opts.algo_transport = algo_transport_;
+        // 图上叠加采集时间戳（调试/对时用，默认关）
+        this->declare_parameter("put_timestamp", false);
+        pub_opts.draw_timestamp = this->get_parameter("put_timestamp").as_bool();
         pub_opts.algo_jpeg_quality = algo_jpeg_quality_;
         pub_opts.algo_width = static_cast<int>(this->get_parameter("algo_width").as_int());
         pub_opts.algo_height = static_cast<int>(this->get_parameter("algo_height").as_int());

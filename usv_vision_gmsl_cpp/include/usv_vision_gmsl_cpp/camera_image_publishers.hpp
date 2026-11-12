@@ -34,6 +34,8 @@
 #include <algorithm>
 #include <cstdint>
 #include <memory>
+#include <iomanip>
+#include <sstream>
 #include <string>
 #include <utility>
 
@@ -96,6 +98,9 @@ struct CameraImagePublisherOptions
     // jpeg 用 cv::imencode 编码后发布到 <algo_image_topic>/compressed，二选一、不并行
     std::string algo_transport = "raw";
     int algo_jpeg_quality = 95;
+
+    // 在图上叠加该帧的采集时间戳（调试/对时用；默认关，开时每帧多一次 putText）
+    bool draw_timestamp = false;
 
     // 算法图（识别 + 观察共用）：尺寸与开关
     bool enable_algo = true;
@@ -177,6 +182,22 @@ public:
     }
 
 private:
+    // 需要时把采集时间戳画到图像左上角（返回原图引用或新克隆的图）
+    const cv::Mat & maybe_draw_timestamp(
+        const cv::Mat & src, const std_msgs::msg::Header & header, cv::Mat & scratch) const
+    {
+        if (!options_.draw_timestamp || src.empty()) {
+            return src;
+        }
+        scratch = src.clone();
+        const double ms = header.stamp.sec * 1000.0 + header.stamp.nanosec / 1e6;
+        std::ostringstream text;
+        text << std::fixed << std::setprecision(1) << ms;
+        cv::putText(scratch, text.str(), cv::Point(12, 32), cv::FONT_HERSHEY_SIMPLEX, 0.9,
+            cv::Scalar(0, 255, 0), 2);
+        return scratch;
+    }
+
     void publish_raw(
         const cv::Mat & bgr,
         const std_msgs::msg::Header & header,
@@ -185,7 +206,9 @@ private:
         const bool raw_wanted = raw_pub_ != nullptr &&
             (!options_.publish_only_when_subscribed || raw_pub_->get_subscription_count() > 0U);
         if (raw_wanted) {
-            auto msg = cv_bridge::CvImage(header, "bgr8", bgr).toImageMsg();
+            cv::Mat stamped;
+            const cv::Mat & out = maybe_draw_timestamp(bgr, header, stamped);
+            auto msg = cv_bridge::CvImage(header, "bgr8", out).toImageMsg();
             raw_pub_->publish(*msg);
             info.raw_published = true;
         }
@@ -233,11 +256,13 @@ private:
             source = &algo_mat_;
         }
 
+        cv::Mat stamped;
+        const cv::Mat & out_img = maybe_draw_timestamp(*source, header, stamped);
         if (algo_compressed_pub_ != nullptr) {
             // 压缩传输：JPEG 编码后发 CompressedImage（与 raw 二选一，不并行）
             std::vector<uchar> buf;
             const std::vector<int> params{cv::IMWRITE_JPEG_QUALITY, options_.algo_jpeg_quality};
-            if (cv::imencode(".jpg", *source, buf, params) && !buf.empty()) {
+            if (cv::imencode(".jpg", out_img, buf, params) && !buf.empty()) {
                 sensor_msgs::msg::CompressedImage msg;
                 msg.header = header;
                 msg.format = "jpeg";
@@ -245,7 +270,7 @@ private:
                 algo_compressed_pub_->publish(msg);
             }
         } else {
-            auto msg = cv_bridge::CvImage(header, "bgr8", *source).toImageMsg();
+            auto msg = cv_bridge::CvImage(header, "bgr8", out_img).toImageMsg();
             algo_pub_->publish(*msg);
         }
         info.algo_width = source->cols;
