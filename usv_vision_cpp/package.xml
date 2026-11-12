@@ -1,0 +1,25 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>usv_vision_cpp</name>
+  <version>0.1.0</version>
+  <description>
+    视觉识别的 C++ / TensorRT 原型实现（实验包，不影响 usv_vision 现有功能）。
+    目的：验证把 yolo 推理从 Python 挪到 C++ 后，单帧耗时能否压到 25 ms 以内、从而跟住 30 Hz 采集。
+  </description>
+  <maintainer email="developer@usv.com">USV Developer</maintainer>
+  <license>Apache-2.0</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+
+  <depend>rclcpp</depend>
+  <depend>sensor_msgs</depend>
+  <depend>std_msgs</depend>
+  <depend>cv_bridge</depend>
+  <depend>usv_interfaces</depend>
+  <depend>opencv</depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>
