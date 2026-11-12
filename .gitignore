@@ -24,3 +24,6 @@ log/
 # 交付包产物与解压实测目录（make_bundle.py 生成）
 /dist/
 /.bundle_check/
+
+# 本机运维工具（现场交付包生成器等），不入库：make_bundle.py
+/scripts/ops/
