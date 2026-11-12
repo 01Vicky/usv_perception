@@ -41,6 +41,7 @@
 #include <cv_bridge/cv_bridge.h>
 #include <rclcpp/rclcpp.hpp>
 #include <sensor_msgs/msg/camera_info.hpp>
+#include <sensor_msgs/msg/compressed_image.hpp>
 #include <sensor_msgs/msg/image.hpp>
 #include <std_msgs/msg/header.hpp>
 
@@ -87,6 +88,15 @@ struct CameraImagePublisherOptions
     std::string algo_resize_backend = "cuda";
     int algo_resize_threads = 1;   // 仅 CPU 后端生效
 
+    // 触发式发布：没人订阅就完全不做（不拷贝、不序列化、不发布）。
+    // 推流/录包/rviz 订阅 image_raw 时才出图；没订阅者时连 cv_bridge 的 8.8MB 拷贝都省掉。
+    bool publish_only_when_subscribed = true;
+
+    // 算法图传输格式：raw（sensor_msgs/Image）| jpeg（sensor_msgs/CompressedImage）
+    // jpeg 用 cv::imencode 编码后发布到 <algo_image_topic>/compressed，二选一、不并行
+    std::string algo_transport = "raw";
+    int algo_jpeg_quality = 95;
+
     // 算法图（识别 + 观察共用）：尺寸与开关
     bool enable_algo = true;
     int algo_width = 640;
@@ -112,7 +122,13 @@ public:
             raw_info_pub_ = node_->create_publisher<sensor_msgs::msg::CameraInfo>(
                 options_.raw_info_topic, make_raw_qos());
         }
-        if (options_.enable_algo && !options_.algo_image_topic.empty()) {
+        if (options_.enable_algo && options_.algo_transport == "jpeg" &&
+            !options_.algo_image_topic.empty())
+        {
+            algo_compressed_pub_ =
+                node_->create_publisher<sensor_msgs::msg::CompressedImage>(
+                    options_.algo_image_topic + "/compressed", make_algo_qos());
+        } else if (options_.enable_algo && !options_.algo_image_topic.empty()) {
             // 与 image_raw 同一套发布 QoS：rviz 默认（reliable）即可看到画面；
             // yolo/rtsp 侧用 best_effort 订阅，兼容方向成立
             algo_pub_ = node_->create_publisher<sensor_msgs::msg::Image>(
@@ -166,12 +182,16 @@ private:
         const std_msgs::msg::Header & header,
         FramePublishInfo & info)
     {
-        if (raw_pub_ != nullptr) {
+        const bool raw_wanted = raw_pub_ != nullptr &&
+            (!options_.publish_only_when_subscribed || raw_pub_->get_subscription_count() > 0U);
+        if (raw_wanted) {
             auto msg = cv_bridge::CvImage(header, "bgr8", bgr).toImageMsg();
             raw_pub_->publish(*msg);
             info.raw_published = true;
         }
-        if (raw_info_pub_ != nullptr) {
+        const bool raw_info_wanted = raw_info_pub_ != nullptr &&
+            (!options_.publish_only_when_subscribed || raw_info_pub_->get_subscription_count() > 0U);
+        if (raw_info_wanted) {
             auto info_msg = info_loader_->get(info.raw_width, info.raw_height);
             info_msg.header = header;
             raw_info_pub_->publish(info_msg);
@@ -184,11 +204,14 @@ private:
         const std_msgs::msg::Header & header,
         FramePublishInfo & info)
     {
-        if (algo_pub_ == nullptr) {
+        if (algo_pub_ == nullptr && algo_compressed_pub_ == nullptr) {
             return;
         }
-        // 无订阅者时严格零开销：不 resize、不分配、不发布
-        if (algo_pub_->get_subscription_count() == 0U) {
+        // 无订阅者时严格零开销：不 resize、不编码、不分配、不发布
+        const bool algo_wanted =
+            (algo_pub_ != nullptr && algo_pub_->get_subscription_count() > 0U) ||
+            (algo_compressed_pub_ != nullptr && algo_compressed_pub_->get_subscription_count() > 0U);
+        if (options_.publish_only_when_subscribed && !algo_wanted) {
             return;
         }
 
@@ -210,13 +233,28 @@ private:
             source = &algo_mat_;
         }
 
-        auto msg = cv_bridge::CvImage(header, "bgr8", *source).toImageMsg();
-        algo_pub_->publish(*msg);
+        if (algo_compressed_pub_ != nullptr) {
+            // 压缩传输：JPEG 编码后发 CompressedImage（与 raw 二选一，不并行）
+            std::vector<uchar> buf;
+            const std::vector<int> params{cv::IMWRITE_JPEG_QUALITY, options_.algo_jpeg_quality};
+            if (cv::imencode(".jpg", *source, buf, params) && !buf.empty()) {
+                sensor_msgs::msg::CompressedImage msg;
+                msg.header = header;
+                msg.format = "jpeg";
+                msg.data = std::move(buf);
+                algo_compressed_pub_->publish(msg);
+            }
+        } else {
+            auto msg = cv_bridge::CvImage(header, "bgr8", *source).toImageMsg();
+            algo_pub_->publish(*msg);
+        }
         info.algo_width = source->cols;
         info.algo_height = source->rows;
         info.algo_published = true;
 
-        if (algo_info_pub_ != nullptr) {
+        if (algo_info_pub_ != nullptr &&
+            (!options_.publish_only_when_subscribed || algo_info_pub_->get_subscription_count() > 0U))
+        {
             auto info_msg = info_loader_->get(info.algo_width, info.algo_height);
             info_msg.header = header;
             algo_info_pub_->publish(info_msg);
@@ -254,6 +292,7 @@ private:
     rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr raw_pub_;
     rclcpp::Publisher<sensor_msgs::msg::CameraInfo>::SharedPtr raw_info_pub_;
     rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr algo_pub_;
+    rclcpp::Publisher<sensor_msgs::msg::CompressedImage>::SharedPtr algo_compressed_pub_;
     rclcpp::Publisher<sensor_msgs::msg::CameraInfo>::SharedPtr algo_info_pub_;
 
     cv::Mat algo_mat_;   // 算法图复用缓冲

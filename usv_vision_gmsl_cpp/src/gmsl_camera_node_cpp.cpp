@@ -53,6 +53,8 @@ public:
         this->declare_parameter("device_path", "/dev/video0");
         this->declare_parameter("frame_id", "front_camera_link");
         this->declare_parameter("camera_info_url", "");
+        // 标定模型：pinhole（默认，plumb_bob）| scaramuzza（MATLAB 鱼眼全向模型）
+        this->declare_parameter("camera_model", "pinhole");
         this->declare_parameter("fov_x_deg", 0.0);  // 规格书标称水平FOV(度)，标定缺失时兜底反算内参
         this->declare_parameter("fov_y_deg", 0.0);  // 规格书标称垂直FOV(度)
         this->declare_parameter("width", 1920);
@@ -109,8 +111,26 @@ public:
         // 初始化标定加载器：标定文件 > 规格书FOV反算 > 空标定，三级兜底，均不影响出图
         double fov_x_deg = this->get_parameter("fov_x_deg").as_double();
         double fov_y_deg = this->get_parameter("fov_y_deg").as_double();
+        const std::string camera_model = this->get_parameter("camera_model").as_string();
         info_loader_ = std::make_shared<usv_vision_gmsl_cpp::CameraInfoLoader>(
-            this->get_logger(), frame_id_, camera_info_url_, fov_x_deg, fov_y_deg);
+            this->get_logger(), frame_id_, camera_info_url_, fov_x_deg, fov_y_deg, camera_model);
+
+        // 1Hz 发布计数：定位"采到多少帧 vs 真正发出去多少帧"
+        stats_timer_ = this->create_wall_timer(std::chrono::seconds(1), [this]() {
+            static uint64_t last_cap = 0, last_raw = 0, last_algo = 0, last_skip = 0;
+            const uint64_t cap = stat_captured_.load();
+            const uint64_t raw = stat_raw_.load();
+            const uint64_t algo = stat_algo_.load();
+            const uint64_t skip = stat_algo_skip_.load();
+            RCLCPP_INFO(this->get_logger(),
+                "pub_stats: captured=%lu/s raw=%lu/s algo=%lu/s algo_skip=%lu/s",
+                static_cast<unsigned long>(cap - last_cap),
+                static_cast<unsigned long>(raw - last_raw),
+                static_cast<unsigned long>(algo - last_algo),
+                static_cast<unsigned long>(skip - last_skip));
+            last_cap = cap; last_raw = raw; last_algo = algo; last_skip = skip;
+        });
+
 
         // M3：C++ 内置推流参数（默认关闭，走原 Python rtsp_stream_node）
         this->declare_parameter("enable_internal_stream", false);
@@ -144,8 +164,17 @@ public:
         // 避免 reliable 发布给慢读者带来重传开销）；可用参数回退到 reliable
         this->declare_parameter("algo_qos_reliability", std::string("best_effort"));
         this->declare_parameter("algo_qos_depth", 1);
+        // 触发式发布：true=没人订阅就不发（默认）；false=无论有没有订阅者都发（排障用）
+        this->declare_parameter("publish_only_when_subscribed", true);
+        // 算法图传输格式：raw（默认，sensor_msgs/Image）| jpeg（压缩 CompressedImage）
+        // jpeg 已实现（cv::imencode → <algo_topic>/compressed），但默认不用：
+        // 三路实测帧率反而降（识别端每帧多 3.5~3.6ms 解码，越过 33.3ms 节拍），重开条件=解码挪到 nvjpeg
+        this->declare_parameter("algo_transport", "raw");
+        this->declare_parameter("algo_jpeg_quality", 95);
         pub_opts.algo_reliability = this->get_parameter("algo_qos_reliability").as_string();
         pub_opts.algo_depth = static_cast<int>(this->get_parameter("algo_qos_depth").as_int());
+        pub_opts.publish_only_when_subscribed =
+            this->get_parameter("publish_only_when_subscribed").as_bool();
 
         // 缩放后端与线程数（供整机资源分配切换：GPU vs CPU）
         this->declare_parameter("algo_resize_backend", std::string("cuda"));
@@ -153,6 +182,16 @@ public:
         pub_opts.algo_resize_backend = this->get_parameter("algo_resize_backend").as_string();
         pub_opts.algo_resize_threads = static_cast<int>(this->get_parameter("algo_resize_threads").as_int());
         pub_opts.enable_algo = this->get_parameter("enable_algo_stream").as_bool();
+        // 算法图传输格式：raw（sensor_msgs/Image）| jpeg（sensor_msgs/CompressedImage）
+        algo_transport_ = this->get_parameter("algo_transport").as_string();
+        algo_jpeg_quality_ = static_cast<int>(this->get_parameter("algo_jpeg_quality").as_int());
+        if (algo_transport_ != "raw" && algo_transport_ != "jpeg") {
+            RCLCPP_WARN(this->get_logger(),
+                "algo_transport=%s 非法（只支持 raw|jpeg），按 raw 运行", algo_transport_.c_str());
+            algo_transport_ = "raw";
+        }
+        pub_opts.algo_transport = algo_transport_;
+        pub_opts.algo_jpeg_quality = algo_jpeg_quality_;
         pub_opts.algo_width = static_cast<int>(this->get_parameter("algo_width").as_int());
         pub_opts.algo_height = static_cast<int>(this->get_parameter("algo_height").as_int());
 
@@ -207,6 +246,17 @@ private:
     bool enable_hw_timestamp_;
     bool auto_detect_resolution_;
     uint8_t camera_no_;
+
+    // 发布计数：用来定位"采到多少帧 vs 实际发出去多少帧"（丢帧发生在哪一侧）
+    // 算法图传输格式（raw|jpeg）与质量；jpeg 只暴露接口，未实现
+    std::string algo_transport_ = "raw";
+    int algo_jpeg_quality_ = 95;
+
+    std::atomic<uint64_t> stat_captured_{0};
+    std::atomic<uint64_t> stat_raw_{0};
+    std::atomic<uint64_t> stat_algo_{0};
+    std::atomic<uint64_t> stat_algo_skip_{0};
+    rclcpp::TimerBase::SharedPtr stats_timer_;
 
     // 发布者（image/camera_info 的按需分发统一由 CameraImagePublishers 承担）
     rclcpp::Publisher<std_msgs::msg::String>::SharedPtr pub_timing_;
@@ -375,6 +425,7 @@ private:
     {
         RCLCPP_INFO(this->get_logger(), "Capture loop started, using SDK GetImageCvMat");
 
+
         publish_status("playing", "sdk_direct");
 
         // SDK的GetImageCvMat需要数组和指针
@@ -393,6 +444,8 @@ private:
                 std::this_thread::sleep_for(std::chrono::milliseconds(10));
                 continue;
             }
+
+            stat_captured_++;
 
             // 构建时间戳
             builtin_interfaces::msg::Time stamp;
@@ -428,6 +481,8 @@ private:
 
         // 发布图像：一次成帧、按需分发（全分辨率给推流/录像，算法尺寸给识别，限频调试给 rviz）
         auto published = images_->publish(bgr_frame, &frame, stamp);
+        if (published.raw_published) {stat_raw_++;} 
+        if (published.algo_published) {stat_algo_++;} else {stat_algo_skip_++;}
 
         // M3：内置推流（懒启动，用首帧尺寸）
         if (stream_cfg_enabled_ && !stream_url_.empty() && frame.channels() == 4) {

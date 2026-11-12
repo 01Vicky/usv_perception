@@ -40,6 +40,11 @@ def camera_nodes(context, gmsl_share, vision_share):
     if stream_mode not in ("internal", "python", "off"):
         stream_mode = "internal"
     algo_stream_enabled = LaunchConfiguration("algo_stream").perform(context) == "true"
+    # 算法图传输格式：raw（默认，sensor_msgs/Image）| jpeg（压缩 CompressedImage，已实现、默认不用）
+    # jpeg 三路实测帧率反而降（解码多 3.5~3.6ms/帧），重开条件=解码挪到 nvjpeg
+    algo_transport = LaunchConfiguration("algo_transport").perform(context).strip().lower() or "raw"
+    if algo_transport not in ("raw", "jpeg"):
+        algo_transport = "raw"
 
     # 解析相机列表: "['front', 'rear', 'side']" → ['front', 'rear', 'side']
     cameras = [c.strip().strip("'\"") for c in cameras_str.strip("[]").split(",")]
@@ -58,6 +63,8 @@ def camera_nodes(context, gmsl_share, vision_share):
             output="screen",
             parameters=[cfg_file, {
                 "sensor_name": cam,
+                # 算法图传输格式（raw|jpeg）；jpeg 已实现，默认 raw
+                "algo_transport": algo_transport,
                 # 采集端按需分发：识别链吃 image_algo（小图），推流继续吃 image_raw（全分辨率）
                 "enable_algo_stream": algo_stream_enabled,
                 # 内置推流：由 launch 统一决定地址（cam1/cam2/... 按相机顺序），yaml 只做覆盖
@@ -75,7 +82,9 @@ def camera_nodes(context, gmsl_share, vision_share):
                 output="screen",
                 parameters=[os.path.join(vision_share, "config", "yolo_infer.yaml"),
                             {"sensor_name": cam, "camera_id": cam,
-                             "use_algo_image": algo_stream_enabled}],
+                             "use_algo_image": algo_stream_enabled,
+                             # 与采集端同源：algo_transport=jpeg 时订阅 <algo_topic>/compressed
+                             "use_compressed_algo": (algo_transport == "jpeg")}],
             ))
 
         # ── RTSP 推流（仅 legacy python 模式；internal 模式在采集节点内部完成）──
@@ -112,6 +121,11 @@ def generate_launch_description():
         "algo_stream", default_value="true",
         description="采集端是否发布 image_algo（识别链吃小图）；false 时识别退回订阅 image_raw",
     )
+    algo_transport_arg = DeclareLaunchArgument(
+        "algo_transport", default_value="raw",
+        description="算法图传输格式：raw（默认）| jpeg（已实现，三路实测帧率降，默认不用）。"
+                    "一处下发到采集与识别两端，不会错配",
+    )
 
     return LaunchDescription([
         cameras_arg,
@@ -119,6 +133,7 @@ def generate_launch_description():
         stream_mode_arg,
         streaming_arg,
         algo_stream_arg,
+        algo_transport_arg,
         LogInfo(msg=["=== Jetson GMSL Full Pipeline ==="]),
         LogInfo(msg=["  cameras:   ", LaunchConfiguration("cameras")]),
         LogInfo(msg=["  inference: ", LaunchConfiguration("inference")]),

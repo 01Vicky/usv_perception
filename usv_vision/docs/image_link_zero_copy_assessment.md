@@ -146,7 +146,7 @@ reliable**：这样 rviz 用默认 QoS 就能看图，省掉现场"忘记改 Rel
 
 ## 七、收益：板上实测 + 改造前预估
 
-> **实测结论（2026-11-07，Jetson AGX Orin，见 [onboard_ab_test_20261107.md](onboard_ab_test_20261107.md)）**：
+> **实测结论（2026-11-07，Jetson AGX Orin，见 [onboard_ab_test_20261107.md](archive/onboard_ab_test_20261107.md)）**：
 > - 总 CPU 基本持平：**95.9% → 91.2%**（单核基准），不是"省 CPU"的改造；
 > - 真正收益是吞吐：`detections` **17.6 Hz → 25.4~27.6 Hz（+44%~+57%）**；
 > - 成本位置：采集端 **+13.6pp**（多发一路 1.2MB 的发布路径），识别端 **−18.4pp**（不再搬 8.8MB、不再做 2.9MP 缩放）；

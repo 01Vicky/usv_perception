@@ -2,9 +2,13 @@
 /**:
   ros__parameters:
     sensor_name: "right"
-    device_path: "/dev/video1"         # 右置相机在video1
+    device_path: "/dev/video1"         # 右置：SDK 01 号相机，对应 /dev/video1
     frame_id: "side_camera_link"
-    camera_info_url: ""
+    # 标定模型：pinhole（默认，D 按 plumb_bob）| scaramuzza（MATLAB 鱼眼全向模型，
+    # dist_coeffs 存 [a0,a1,a2,a3,a4]，a0≈等效焦距 px）
+    camera_model: "scaramuzza"   # 默认鱼眼；针孔相机改回 "pinhole"
+    # 标定文件：相对路径按本包 share 目录解析（install/share/<pkg>/config/calib/...），换机器不用改
+    camera_info_url: "config/calib/01_140100471890.json"
     width: 1920
     height: 1536
     fps: 30.0
@@ -26,3 +30,8 @@
     stream_idr_interval: 30
     stream_preset_level: 1
     stream_control_rate: 1
+    # 算法图尺寸：鱼眼径向模型要求等比缩放，1920x1536 对应 640x512
+    # 触发式发布：没有订阅者就不发图（不拷贝、不序列化、不写共享内存）
+    publish_only_when_subscribed: true
+    algo_width: 640
+    algo_height: 512

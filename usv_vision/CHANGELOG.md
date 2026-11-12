@@ -39,7 +39,7 @@
   按需分发方案、预期收益、板上验证步骤、后续 M3/M4 计划）。
 - 新增 `docs/variant_benchmark_log.md`：**持续维护的链路开销与资源占用对照账本**（通信开销表、资源占用与吞吐表、每次改动的版本清单、待补测量项、历史数据索引），规定每次改动必须追加一行数据。
 - 新增 `scripts/record_variant.sh`：一条命令把当前链路量化并追加到账本（出帧率、image_raw/image_algo 带宽、进程 CPU 与 RSS、detections 频率），CPU 取 `/proc/<pid>/stat` 增量、帧率取 `frame_timing_json` 计数（避免大包误报）。
-- 新增 `docs/onboard_ab_test_20261107.md`：板上 A/B/C 对照实测记录（环境与 engine 构建参数、
+- 新增 `docs/archive/onboard_ab_test_20261107.md`：板上 A/B/C 对照实测记录（环境与 engine 构建参数、
   控制变量方法、测量手段与踩坑、A/B/C 数据表、结论与限制、复现步骤）。
 - 新增诊断脚本 `scripts/check_image_qos_backpressure.py`（入口 `ros2 run usv_vision
   check_image_qos`）：A/B/C 三组对照验证「可靠发布 + GUI 订阅」是否反压采集线程，

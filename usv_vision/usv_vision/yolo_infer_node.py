@@ -8,6 +8,7 @@ from cv_bridge import CvBridge
 from rclpy.node import Node
 from rclpy.parameter import Parameter
 from sensor_msgs.msg import CameraInfo
+from sensor_msgs.msg import CompressedImage
 from sensor_msgs.msg import Image
 from std_msgs.msg import String
 from std_srvs.srv import Trigger
@@ -122,6 +123,10 @@ class YoloInferNode(Node):
         self.declare_parameter("publish_debug_image", False)
         self.declare_parameter("startup_report_hz", 0.5)
         self.declare_parameter("camera_horizontal_fov_deg", 150.0)
+        # 方位角模型：auto（默认，跟随 camera_info 的 distortion_model）
+        #              pinhole（强制针孔）| scaramuzza（强制 MATLAB 鱼眼全向模型）
+        # 鱼眼参数从 camera_info 取：K.fx=K.fy=a0，D=[a1,a2,a3,a4]
+        self.declare_parameter("angle_model", "auto")
         self.declare_parameter("max_det", 50)
         self.declare_parameter("publish_legacy_targets", True)
         self.declare_parameter("class_name_allowlist", Parameter.Type.STRING_ARRAY)
@@ -133,6 +138,9 @@ class YoloInferNode(Node):
         self.declare_parameter("mask_fill", 114)
         # 采集端"按需分发"后，识别链默认订阅 image_algo（小图），不再吃全分辨率 image_raw
         self.declare_parameter("use_algo_image", True)
+        # 算法图是否为压缩格式（与采集端 algo_transport 同源，由 launch 下发）
+        # True 目前只暴露接口：节点会告警并按未压缩图运行
+        self.declare_parameter("use_compressed_algo", False)
         # 坐标/阈值基准分辨率：0 表示以订阅到的图像尺寸为准（改造前行为）。
         # 填 1920/1536 时，下游 bbox 坐标与 min_box_* 阈值仍按原生分辨率语义解释，
         # 内部自动换算到实际输入尺寸，下游消费者无感。
@@ -143,6 +151,8 @@ class YoloInferNode(Node):
         configured_camera_id = str(self.get_parameter("camera_id").value).strip()
         self.camera_id = configured_camera_id or self.sensor_name
         self.use_algo_image = bool(self.get_parameter("use_algo_image").value)
+        self.use_compressed_algo = bool(self.get_parameter("use_compressed_algo").value)
+        self.compressed_image_topic = ""
         # 默认话题：算法图（采集端分发的小图）优先；驱动未开 algo 分发时把 use_algo_image 置 false 回退
         default_image_topic = (
             algo_image_topic(self.sensor_name) if self.use_algo_image else image_topic(self.sensor_name)
@@ -193,6 +203,7 @@ class YoloInferNode(Node):
         self.track_min_hits = int(self.get_parameter("track_min_hits").value)
         self.publish_debug_image = bool(self.get_parameter("publish_debug_image").value)
         self.camera_horizontal_fov_deg = float(self.get_parameter("camera_horizontal_fov_deg").value)
+        self.angle_model = str(self.get_parameter("angle_model").value).strip().lower() or "pinhole"
         self.max_det = int(self.get_parameter("max_det").value)
         self.publish_legacy_targets = bool(self.get_parameter("publish_legacy_targets").value)
         class_name_allowlist_param = self.get_parameter_or(
@@ -244,7 +255,14 @@ class YoloInferNode(Node):
         if self._inference_enabled:
             self._try_load_model()
             qos = image_qos("best_effort", 1)
-            self.create_subscription(Image, self.image_topic, self._on_image, qos)
+            if self.use_compressed_algo:
+                # 压缩通道：话题名带 /compressed，类型 CompressedImage（与采集端 algo_transport=jpeg 配对）
+                self.compressed_image_topic = self.image_topic + "/compressed"
+                self.create_subscription(
+                    CompressedImage, self.compressed_image_topic, self._on_compressed_image, qos)
+                self.get_logger().info(f"算法图走压缩通道: {self.compressed_image_topic}")
+            else:
+                self.create_subscription(Image, self.image_topic, self._on_image, qos)
             self.create_subscription(CameraInfo, self.camera_info_topic, self._on_camera_info, qos)
         self.create_service(Trigger, self._mask_service_name(), self._on_reload_mask)
         hz = max(0.2, float(self.get_parameter("startup_report_hz").value))
@@ -423,7 +441,29 @@ class YoloInferNode(Node):
             )
         return apply_input_mask(frame, self._mask_ignore, self.mask_fill)
 
-    def _on_image(self, msg: Image) -> None:
+    def _on_compressed_image(self, msg: CompressedImage) -> None:
+        """压缩通道入口：解码成 bgr8，再走与未压缩完全相同的处理路径。"""
+        if self._model is None:
+            return
+        try:
+            import time as _time
+            _d0 = _time.perf_counter()
+            frame = self._bridge.compressed_imgmsg_to_cv2(msg, desired_encoding="bgr8")
+            _decode_ms = (_time.perf_counter() - _d0) * 1000.0
+        except Exception as exc:  # noqa: BLE001
+            self.get_logger().error(f"压缩图解码失败: {exc}")
+            return
+        # 造一个等价的 Image 头/尺寸，后面的逻辑（时间戳、坐标换算）不用改
+        proxy = Image()
+        proxy.header = msg.header
+        proxy.height = int(frame.shape[0])
+        proxy.width = int(frame.shape[1])
+        proxy.encoding = "bgr8"
+        proxy.step = int(frame.shape[1] * 3)
+        proxy.data = b""
+        self._on_image(proxy, _predecoded=frame, _decode_ms=_decode_ms)
+
+    def _on_image(self, msg: Image, _predecoded=None, _decode_ms=None) -> None:
         if self._model is None:
             return
 
@@ -431,7 +471,8 @@ class YoloInferNode(Node):
             import time as _time
             _t0 = _time.perf_counter()
 
-            frame = self._bridge.imgmsg_to_cv2(msg, desired_encoding="bgr8")
+            frame = _predecoded if _predecoded is not None else \
+                self._bridge.imgmsg_to_cv2(msg, desired_encoding="bgr8")
             _t1 = _time.perf_counter()
 
             results = self._model.predict(
@@ -456,10 +497,12 @@ class YoloInferNode(Node):
             _t3 = _time.perf_counter()
             self._frame_count += 1
 
-            decode_ms = (_t1 - _t0) * 1000.0
+            decode_ms = _decode_ms if _decode_ms is not None else (_t1 - _t0) * 1000.0
             infer_ms = (_t2 - _t1) * 1000.0
             post_ms = (_t3 - _t2) * 1000.0
-            total_ms = (_t3 - _t0) * 1000.0
+            # 压缩通道的解码发生在 _t0 之前，要单独加回总耗时
+            total_ms = decode_ms + (_t3 - _t1) * 1000.0 if _decode_ms is not None \
+                else (_t3 - _t0) * 1000.0
 
             # Throttled timing log
             if _t3 - self._last_timing_log_time >= 1.0 / self._timing_log_hz:
@@ -499,26 +542,58 @@ class YoloInferNode(Node):
             self._targets_pub.publish(msg)
 
     def _angle_source(self) -> str:
-        fx, cx = self._camera_intrinsics()
+        fx, cx, cy = self._camera_intrinsics()
         if fx is not None and cx is not None:
-            return "camera_info"
+            model = self.angle_model
+            if self._latest_camera_info is not None:
+                published = str(getattr(self._latest_camera_info, "distortion_model", "") or "")
+                if published:
+                    model = published
+            return f"camera_info:{model}"
         return "horizontal_fov_fallback"
 
     def _camera_intrinsics(self):
         if self._latest_camera_info is None:
-            return None, None
+            return None, None, None
         k = list(self._latest_camera_info.k)
         if len(k) < 6:
-            return None, None
+            return None, None, None
         fx = float(k[0])
         cx = float(k[2])
+        cy = float(k[5])
         if fx <= 0.0:
-            return None, None
-        return fx, cx
+            return None, None, None
+        return fx, cx, cy
 
-    def _compute_rel_angle_rad(self, center_x: float, image_width: int) -> float:
-        fx, cx = self._camera_intrinsics()
+    def _compute_rel_angle_rad(self, center_x: float, center_y: float,
+                               image_width: int, image_height: int) -> float:
+        """水平方位角（rad，右正左负）。
+
+        pinhole   : atan((u - cx) / fx)
+        scaramuzza: 全向模型 f(rho) = a0 + a1*rho + a2*rho^2 + a3*rho^3 + a4*rho^4，
+                    azimuth = atan2(u, f(rho))，rho 是到主点的像素距离（含竖直分量）。
+                    K.fx 存 a0，D 存 [a1, a2, a3, a4, 0]。
+        """
+        fx, cx, cy = self._camera_intrinsics()
         if fx is not None and cx is not None:
+            model = self.angle_model
+            if model == "auto":
+                published = str(getattr(self._latest_camera_info, "distortion_model", "") or "")
+                model = "scaramuzza" if published.strip().lower() == "scaramuzza" else "pinhole"
+            if model == "scaramuzza":
+                u = center_x - cx
+                v = center_y - (cy if cy is not None else image_height / 2.0)
+                rho = math.hypot(u, v)
+                a0 = fx
+                d = list(getattr(self._latest_camera_info, "d", []) or [])
+                a1 = float(d[0]) if len(d) > 0 else 0.0
+                a2 = float(d[1]) if len(d) > 1 else 0.0
+                a3 = float(d[2]) if len(d) > 2 else 0.0
+                a4 = float(d[3]) if len(d) > 3 else 0.0
+                f_rho = a0 + a1 * rho + a2 * rho * rho + a3 * rho ** 3 + a4 * rho ** 4
+                if f_rho <= 1e-6:
+                    return math.atan(u / max(a0, 1e-6))
+                return math.atan2(u, f_rho)
             return math.atan((center_x - cx) / fx)
 
         if not self._warned_no_camera_info:
@@ -801,7 +876,9 @@ class YoloInferNode(Node):
                 out_height = int(round(bbox_height * scale_y))
 
                 center_x = (x1 + x2) / 2.0
-                azimuth = self._compute_rel_angle_rad(center_x, width)
+                azimuth = self._compute_rel_angle_rad(
+                    center_x, (y1 + y2) / 2.0, width, height
+                )
                 rel_ang_deg = math.degrees(azimuth)
                 conf_rounded = self._round2(candidate.confidence)
                 azimuth_rounded = self._round4(azimuth)

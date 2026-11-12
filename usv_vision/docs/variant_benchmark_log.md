@@ -82,7 +82,7 @@ CPU 均为**单核基准**（8 核 SoC，100% = 占满 1 核）。
 
 | 日期 | 文档 | 内容 |
 |---|---|---|
-| 2026-11-07 | [onboard_ab_test_20261107.md](onboard_ab_test_20261107.md) | A/B/C 三阶段完整实验记录（环境、方法、数据、复现步骤） |
+| 2026-11-07 | [onboard_ab_test_20261107.md](archive/onboard_ab_test_20261107.md) | A/B/C 三阶段完整实验记录（环境、方法、数据、复现步骤） |
 | 2026-11-06~07 | [image_link_zero_copy_assessment.md](image_link_zero_copy_assessment.md) | 零拷贝可行性评估、拷贝账、QoS 取舍、方案与收益 |
 
 ## 六、自动记录（`scripts/record_variant.sh` 追加）

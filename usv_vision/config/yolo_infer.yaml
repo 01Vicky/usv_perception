@@ -19,7 +19,8 @@
     reference_height: 1536
 
     # ── 模型（部署前需导出 engine） ──────────
-    # python3 scripts/export_engine_jetson.py --model best.pt --imgsz 640
+    # 导出（板上执行，产出 yolo11n.engine）:
+    # python3 -c "from ultralytics import YOLO; YOLO('yolo11n.pt').export(format='engine', half=True, imgsz=640, device=0)"
     engine_path: "model/jetson/yolo11n_fp16_640.engine"
     model_backend: "tensorrt"
 
@@ -55,7 +56,13 @@
     publish_legacy_targets: true
     startup_report_hz: 0.5
 
-    # ── 方位估计（单目水天线法） ─────────────
+    # ── 方位估计 ─────────────────────────────
+    # angle_model: pinhole（默认，atan((u-cx)/fx)）
+    #              scaramuzza（MATLAB 鱼眼全向模型：f(rho)=a0+a1ρ+a2ρ²+a3ρ³+a4ρ⁴，
+    #                          az=atan2(u, f(ρ))；需 camera_info 的 distortion_model=scaramuzza）
+    # auto：跟随 camera_info 的 distortion_model（鱼眼标定出 scaramuzza、针孔出 plumb_bob），
+    # 一台鱼眼一台针孔混用也没问题；也可强制指定 pinhole / scaramuzza
+    angle_model: "auto"
     camera_horizontal_fov_deg: 90.0
 
     # ── 类别过滤（空＝保留全部） ─────────────

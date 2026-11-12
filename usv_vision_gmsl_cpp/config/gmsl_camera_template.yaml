@@ -66,6 +66,8 @@
     # 订阅端一律 best_effort/depth1（只处理最新帧，写端不等读者）。
     # 观察画面怎么开：rviz 订阅 .../image_algo 即可（默认 QoS 就能看到）；
     # 要看检测框叠加则订阅 /perception/camera/{sensor_name}/annotated。
+    # 触发式发布：没有订阅者就不发图
+    publish_only_when_subscribed: true
     enable_algo_stream: true          # 是否发布 image_algo
     algo_width: 640                   # 算法图宽度（<=0 或与原始同尺寸则不缩放，直接用原图）
     algo_height: 640                  # 算法图高度

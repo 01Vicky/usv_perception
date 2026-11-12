@@ -15,12 +15,14 @@
 | `enable_hardware_timestamp` | true | 用 SDK 硬件时间戳；失效时回退 ROS 时间 | — |
 | `image_qos_reliability` | `reliable` | `image_raw` 的发布可靠性。reliable 让 rviz/录像零配置可用 | CPU（慢读者会重传） |
 | `image_qos_depth` | 2 | `image_raw` 队列深度。8.8MB 大帧下 depth 越大只是白占内存 | 内存 |
+| **`publish_only_when_subscribed`** | true | **触发式发布**：没有订阅者时 `image_raw` / `image_algo` / `camera_info` 完全不发（不拷贝、不序列化、不写共享内存）。三路实测采集节点合计 **0.71 → 0.45 核**；推流/录包/rviz 订阅后下一轮立即恢复发布。`false`=旧行为（总是发），仅排障用 | CPU | 
 | `enable_algo_stream` | true | 是否发布 `image_algo`（识别用小图）。关闭后识别不可用 | CPU / DDS 带宽 |
 | `algo_width` / `algo_height` | 640 / 640 | 算法图尺寸。原始 1920×1536 是 5:4，保比例应配 **640×512** | CPU（resize） |
 | **`algo_resize_backend`** | `cpu` | `cuda`=GPU 融合转色+缩放；`cpu`=OpenCV。**实测两者等同**（cuda 的显存流量吃掉收益），默认 cpu 少一层依赖；整机 CPU 紧张时可切 cuda 换 CPU 余量 | CPU ↔ GPU |
 | **`algo_resize_threads`** | 1 | 仅 cpu 后端生效。OpenCV 多线程的 CPU 时间≈墙钟×线程数，1 最小 | CPU |
 | `algo_qos_reliability` | `best_effort` | `image_algo` 发布可靠性。识别只要最新帧，best_effort 避免给慢读者重传 | CPU |
 | `algo_qos_depth` | 1 | `image_algo` 队列深度 | 内存 |
+| `algo_transport` / `algo_jpeg_quality` | `raw` / 95 | 算法图传输格式（`raw`=未压缩，`jpeg`=压缩）。**目前只暴露接口**：`jpeg` 为已实现但**暂不采用**（三路下解码成本 3.5ms/帧，越过 33.3ms 节拍）。由 launch 的 `algo_transport` 统一下发 | 带宽（预期） |
 | **`enable_internal_stream`** | false | 是否启用 **C++ 内置推流**（采集进程内直接编码）。由 launch 的 `stream_mode` 统一下发，一般不要手改 | CPU（省一整条链路） |
 | **`stream_rtsp_url`** | `""` | 推流地址。**空 = 由 launch 按相机顺序注入** `rtsp://127.0.0.1:8554/camN`；仅特殊场景手填 | — |
 | `stream_bitrate` | 4000000 | 编码码率（bps） | 带宽 / GPU 编码器 |

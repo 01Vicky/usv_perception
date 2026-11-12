@@ -60,6 +60,8 @@ public:
         this->declare_parameter<int>("image_qos_depth", 2);
         // 按需分发（与单相机节点一致）：image_raw 全分辨率 / image_algo 算法尺寸（识别 + 观察共用）
         this->declare_parameter<bool>("enable_algo_stream", true);
+        // 触发式发布：没人订阅就不发图
+        this->declare_parameter<bool>("publish_only_when_subscribed", true);
         this->declare_parameter<int>("algo_width", 640);
         this->declare_parameter<int>("algo_height", 640);
 
@@ -71,6 +73,7 @@ public:
         image_qos_reliability_ = this->get_parameter("image_qos_reliability").as_string();
         image_qos_depth_ = this->get_parameter("image_qos_depth").as_int();
         enable_algo_stream_ = this->get_parameter("enable_algo_stream").as_bool();
+        publish_only_when_subscribed_ = this->get_parameter("publish_only_when_subscribed").as_bool();
         algo_width_ = this->get_parameter("algo_width").as_int();
         algo_height_ = this->get_parameter("algo_height").as_int();
 
@@ -98,6 +101,7 @@ public:
             opts.raw_reliability = image_qos_reliability_;
             opts.raw_depth = image_qos_depth_;
             opts.enable_algo = enable_algo_stream_;
+            opts.publish_only_when_subscribed = publish_only_when_subscribed_;
             opts.algo_width = algo_width_;
             opts.algo_height = algo_height_;
 
@@ -325,6 +329,7 @@ private:
     std::string image_qos_reliability_;
     int image_qos_depth_;
     bool enable_algo_stream_;
+    bool publish_only_when_subscribed_ = true;
     int algo_width_;
     int algo_height_;
 

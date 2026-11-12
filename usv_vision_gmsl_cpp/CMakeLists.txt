@@ -8,6 +8,7 @@ endif()
 # 查找ROS 2依赖
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
+find_package(ament_index_cpp REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(cv_bridge REQUIRED)
@@ -68,6 +69,7 @@ if(BUILD_GMSL_CPP_NODE)
   )
 
   ament_target_dependencies(gmsl_camera_node_cpp
+    ament_index_cpp
     rclcpp
     sensor_msgs
     std_msgs
@@ -93,6 +95,7 @@ if(BUILD_GMSL_CPP_NODE)
   )
 
   ament_target_dependencies(gmsl_multi_camera_sync_node
+    ament_index_cpp
     rclcpp
     sensor_msgs
     std_msgs

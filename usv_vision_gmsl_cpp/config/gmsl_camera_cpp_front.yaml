@@ -2,9 +2,13 @@
 /**:
   ros__parameters:
     sensor_name: "front"
-    device_path: "/dev/video3"         # 前置相机通常在video0
+    device_path: "/dev/video0"         # 前置：SDK 00 号相机，对应 /dev/video0
     frame_id: "front_camera_link"
-    camera_info_url: ""
+    # 标定模型：pinhole（默认，D 按 plumb_bob）| scaramuzza（MATLAB 鱼眼全向模型，
+    # dist_coeffs 存 [a0,a1,a2,a3,a4]，a0≈等效焦距 px）
+    camera_model: "scaramuzza"   # 默认鱼眼；针孔相机改回 "pinhole"
+    # 标定文件：相对路径按本包 share 目录解析（install/share/<pkg>/config/calib/...），换机器不用改
+    camera_info_url: "config/calib/00_140100601890.json"
     width: 1920
     height: 1536
     fps: 30.0
@@ -26,9 +30,12 @@
     # 观察画面怎么开：rviz 直接订阅 .../image_algo 即可（默认 QoS 就能看到画面），
     # 要看检测框叠加则订阅 /perception/camera/{sensor_name}/annotated。
     # 识别/推流等订阅端一律用 best_effort/depth1（只处理最新帧）。
+    # 触发式发布：没有订阅者就不发图（不拷贝、不序列化、不写共享内存）
+    # true=默认（省 CPU，三路实测 0.71->0.45 核）；false=旧行为（无论有没有订阅者都发，仅排障用）
+    publish_only_when_subscribed: true
     enable_algo_stream: true          # 是否发布 image_algo
     algo_width: 640                   # 算法图宽度（<=0 或与原始同尺寸则不缩放）
-    algo_height: 640                  # 算法图高度。原始 1920x1536 是 5:4；若要保比例应配 640x512
+    algo_height: 512                  # 算法图高度。原始 1920x1536 是 5:4；若要保比例应配 640x512
     algo_resize_backend: cpu
     algo_resize_threads: 1
     # M3 内置推流：默认关闭，由 launch 的 stream_mode:=internal 注入地址后启用

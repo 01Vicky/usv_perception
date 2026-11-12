@@ -20,3 +20,7 @@ log/
 /gy_radar_driver/
 /mmwave_radar/
 *.zip
+
+# 交付包产物与解压实测目录（make_bundle.py 生成）
+/dist/
+/.bundle_check/

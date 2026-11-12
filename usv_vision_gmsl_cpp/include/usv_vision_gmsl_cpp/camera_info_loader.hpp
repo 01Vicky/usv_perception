@@ -18,8 +18,10 @@
 #include <fstream>
 #include <exception>
 #include <cmath>
+#include <algorithm>
 #include <sys/stat.h>
 
+#include <ament_index_cpp/get_package_share_directory.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <sensor_msgs/msg/camera_info.hpp>
 #include <nlohmann/json.hpp>
@@ -32,13 +34,17 @@ class CameraInfoLoader
 public:
     // fov_x_deg / fov_y_deg：规格书标称视场角（度），仅在标定文件缺失时用于反算近似内参；
     // 两者 ≤ 0 表示未提供，则退回空标定
+    // camera_model: "pinhole"（默认，D 按 plumb_bob 解释）
+    //               "scaramuzza"（MATLAB 鱼眼/全向模型，dist_coeffs 存 [a0,a1,a2,a3,a4]）
     CameraInfoLoader(rclcpp::Logger logger, std::string frame_id, std::string camera_info_url,
-                     double fov_x_deg = 0.0, double fov_y_deg = 0.0)
+                     double fov_x_deg = 0.0, double fov_y_deg = 0.0,
+                     std::string camera_model = "pinhole")
         : logger_(logger),
           frame_id_(std::move(frame_id)),
           camera_info_url_(std::move(camera_info_url)),
           fov_x_deg_(fov_x_deg),
-          fov_y_deg_(fov_y_deg)
+          fov_y_deg_(fov_y_deg),
+          camera_model_(std::move(camera_model))
     {
     }
 
@@ -61,6 +67,24 @@ private:
         return !path.empty() && stat(path.c_str(), &buffer) == 0;
     }
 
+    /// 相对路径按"本包 share 目录"解析：deploy 到哪台机器都不用改 yaml
+    std::string resolve_url(const std::string& url) const
+    {
+        if (url.empty() || url.front() == '/') {
+            return url;
+        }
+        try {
+            const std::string share = ament_index_cpp::get_package_share_directory("usv_vision_gmsl_cpp");
+            const std::string candidate = share + "/" + url;
+            if (file_exists(candidate)) {
+                return candidate;
+            }
+        } catch (const std::exception& e) {
+            RCLCPP_WARN(logger_, "无法定位 usv_vision_gmsl_cpp share 目录：%s", e.what());
+        }
+        return url;
+    }
+
     sensor_msgs::msg::CameraInfo load(int width, int height)
     {
         using json = nlohmann::json;
@@ -70,9 +94,10 @@ private:
         msg.height = static_cast<uint32_t>(height);
         msg.header.frame_id = frame_id_;
 
-        if (file_exists(camera_info_url_)) {
+        const std::string resolved_url = resolve_url(camera_info_url_);
+        if (file_exists(resolved_url)) {
             try {
-                std::ifstream file(camera_info_url_);
+                std::ifstream file(resolved_url);
                 json data = json::parse(file);
 
                 double fx = data["focal_length"]["fx"].get<double>();
@@ -117,11 +142,57 @@ private:
                     distortion.assign(5, 0.0);
                 }
 
+                if (camera_model_ == "scaramuzza") {
+                    // MATLAB 鱼眼（Scaramuzza 全向模型）：
+                    //   f(rho) = a0 + a1*rho + a2*rho^2 + a3*rho^3 + a4*rho^4
+                    //   dist_coeffs 依次存 [a0, a1, a2, a3, a4]（本文档里 a1=0，凑 5 位与针孔长度兼容）
+                    // 这里把 a0 塞进 fx/fy（中心附近与等效焦距同量级），a1..a4 塞进 D，
+                    // distortion_model 标 scaramuzza，供下游按全向模型反投影。
+                    if (distortion.size() < 5) {
+                        RCLCPP_ERROR(logger_,
+                            "camera_model=scaramuzza 需要 5 个映射系数 [a0..a4]，实际 %zu 个，按针孔处理",
+                            distortion.size());
+                    } else {
+                        double a0 = distortion[0];
+                        double a1 = distortion[1];
+                        double a2 = distortion[2];
+                        double a3 = distortion[3];
+                        double a4 = distortion[4];
+                        if (calib_w > 0 && calib_h > 0 && (calib_w != width || calib_h != height)) {
+                            const double sx = static_cast<double>(width) / calib_w;
+                            const double sy = static_cast<double>(height) / calib_h;
+                            if (std::fabs(sx - sy) > 0.01 * std::max(sx, sy)) {
+                                // 等比缩放才成立：非等比会把径向模型拉歪，算出来的角度是错的
+                                RCLCPP_ERROR(logger_,
+                                    "scaramuzza 标定 %dx%d 到出图 %dx%d 是**非等比**缩放（sx=%.4f sy=%.4f），"
+                                    "径向模型不成立；请把算法图配成保比例尺寸（原图 5:4 对应 640x512）或改用针孔模型",
+                                    calib_w, calib_h, width, height, sx, sy);
+                            } else {
+                                // 像素整体缩放 s 时：a0 -> s*a0，a1 -> a1，a2 -> a2/s，a3 -> a3/s^2，a4 -> a4/s^3
+                                a0 *= sx;
+                                a2 /= sx;
+                                a3 /= (sx * sx);
+                                a4 /= (sx * sx * sx);
+                                RCLCPP_INFO(logger_,
+                                    "scaramuzza 映射系数按 %.4f 缩放到 %dx%d", sx, width, height);
+                            }
+                        }
+                        msg.k = {a0, 0.0, cx, 0.0, a0, cy, 0.0, 0.0, 1.0};
+                        msg.d = {a1, a2, a3, a4, 0.0};
+                        msg.p = {a0, 0.0, cx, 0.0, 0.0, a0, cy, 0.0, 0.0, 0.0, 1.0, 0.0};
+                        msg.distortion_model = "scaramuzza";
+                        RCLCPP_INFO(logger_,
+                            "loaded scaramuzza camera info: %s (a0=%.3f a2=%.6g a3=%.6g a4=%.6g)", 
+                            resolved_url.c_str(), a0, a2, a3, a4);
+                        return msg;
+                    }
+                }
+
                 msg.k = {fx, 0.0, cx, 0.0, fy, cy, 0.0, 0.0, 1.0};
                 msg.d = distortion;
                 msg.p = {fx, 0.0, cx, 0.0, 0.0, fy, cy, 0.0, 0.0, 0.0, 1.0, 0.0};
                 msg.distortion_model = "plumb_bob";
-                RCLCPP_INFO(logger_, "loaded camera info: %s", camera_info_url_.c_str());
+                RCLCPP_INFO(logger_, "loaded camera info: %s", resolved_url.c_str());
                 return msg;
             } catch (const std::exception& e) {
                 RCLCPP_ERROR(logger_,
@@ -172,6 +243,7 @@ private:
     std::string camera_info_url_;
     double fov_x_deg_ = 0.0;
     double fov_y_deg_ = 0.0;
+    std::string camera_model_ = "pinhole";
 
     sensor_msgs::msg::CameraInfo cached_info_;
     bool cached_ = false;

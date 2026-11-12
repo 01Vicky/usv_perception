@@ -200,7 +200,7 @@ ros2 launch usv_vision dual_gmsl.launch.py
 ```bash
 ros2 launch usv_vision usv_vision.launch.py \
   namespace:=front_gmsl_algo \
-  gmsl_config:=/home/cczh/USV_ROS/src/usv_perception/usv_vision/config/gmsl_camera_algo_640.yaml
+  gmsl_config:=<ws>/src/usv_perception/usv_vision/config/gmsl_camera_algo_640.yaml
 ```
 
 ### 5.4 RTSP 推流脚本
@@ -402,7 +402,7 @@ ros2 launch usv_vision dual_gmsl.launch.py
 ```bash
 ros2 launch usv_vision usv_vision.launch.py \
   namespace:=front_gmsl_algo \
-  gmsl_config:=/home/cczh/USV_ROS/src/usv_perception/usv_vision/config/gmsl_camera_algo_640.yaml
+  gmsl_config:=<ws>/src/usv_perception/usv_vision/config/gmsl_camera_algo_640.yaml
 ```
 
 ### CPU 备份对照链
@@ -410,7 +410,7 @@ ros2 launch usv_vision usv_vision.launch.py \
 ```bash
 ros2 launch usv_vision usv_vision.launch.py \
   namespace:=front_gmsl_algo_cpu \
-  gmsl_config:=/home/cczh/USV_ROS/src/usv_perception/usv_vision/config/gmsl_camera_algo_640_cpu_backup.yaml
+  gmsl_config:=<ws>/src/usv_perception/usv_vision/config/gmsl_camera_algo_640_cpu_backup.yaml
 ```
 
 ### 启用推理占位节点
